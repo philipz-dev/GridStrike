@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import WatchKit
 
 struct ContentView: View {
     var body: some View {
@@ -40,9 +41,22 @@ private enum UnitMark: Equatable {
     }
 }
 
+private enum NorthernPlayfieldStrike: Equatable {
+    /// Unit present (HQ / missile / bomber).
+    case hit
+    /// Empty northern grass.
+    case miss
+}
+
 private struct GridStrikeFlowView: View {
     @State private var phase: SetupPhase = .welcome
     @State private var cellMarks: [String: UnitMark] = [:]
+    /// Degrees; only spawned post-setup bomber uses 180.
+    @State private var bomberRotationDegreesByKey: [String: Double] = [:]
+    @State private var didApplyPostSetupSpawn = false
+    @State private var northernPlayfieldStrikes: [String: NorthernPlayfieldStrike] = [:]
+    @State private var bombingRunActive = false
+    @State private var bombingSourceKey: String?
 
     var body: some View {
         Group {
@@ -84,6 +98,10 @@ private struct GridStrikeFlowView: View {
             GridStrikeSetupGrid(
                 phase: phase,
                 cellMarks: cellMarks,
+                bomberRotationDegreesByKey: bomberRotationDegreesByKey,
+                northernPlayfieldStrikes: northernPlayfieldStrikes,
+                bombingRunActive: bombingRunActive,
+                bombingSourceKey: bombingSourceKey,
                 onCellTap: handleCellTap
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -113,18 +131,24 @@ private struct GridStrikeFlowView: View {
             if newPhase == .placeCoastguard {
                 NotificationCenter.default.post(name: .gridStrikeScrollToCoastguard, object: nil)
             }
+            if newPhase == .complete {
+                applyPostSetupSpawnIfNeeded()
+            }
         }
     }
 
     private var instructionText: String {
+        if bombingRunActive {
+            return "Bombing area"
+        }
         switch phase {
-        case .welcome: ""
-        case .placeHeadquarter: "Place headquarter"
-        case .placeMissile1: "Place missile 1"
-        case .placeMissile2: "Place missile 2"
-        case .placeBomber: "Place bomber"
-        case .placeCoastguard: "Place coastguard"
-        case .complete: "Setup complete"
+        case .welcome: return ""
+        case .placeHeadquarter: return "Place headquarter"
+        case .placeMissile1: return "Place missile 1"
+        case .placeMissile2: return "Place missile 2"
+        case .placeBomber: return "Place bomber"
+        case .placeCoastguard: return "Place coastguard"
+        case .complete: return "Setup complete"
         }
     }
 
@@ -151,6 +175,26 @@ private struct GridStrikeFlowView: View {
     }
 
     private func handleCellTap(row: Int, col: Int) {
+        if phase == .complete {
+            let key = cellKey(row, col)
+            let m = mark(at: row, col)
+
+            if !bombingRunActive, row >= 9 && row <= 13, m == .bomber {
+                bombingRunActive = true
+                bombingSourceKey = key
+                return
+            }
+
+            let inNorthernStrikeBand = bombingRunActive ? (row >= 2 && row <= 4) : (row >= 0 && row < 5)
+            guard inNorthernStrikeBand, col >= 0 && col < 5 else { return }
+            guard northernPlayfieldStrikes[key] == nil else { return }
+            let hasStrikeableUnit = m == .headquarters || m == .missile || m == .bomber
+            northernPlayfieldStrikes[key] = hasStrikeableUnit ? .hit : .miss
+            if hasStrikeableUnit {
+                WKInterfaceDevice.current().play(.click)
+            }
+            return
+        }
         guard isSelectable(row: row, col: col) else { return }
         let key = cellKey(row, col)
         switch phase {
@@ -183,6 +227,50 @@ private struct GridStrikeFlowView: View {
     private static func isGrass(_ row: Int) -> Bool {
         row <= 4 || row >= 9
     }
+
+    /// Northern grass rows 0–4: random HQ, 2 missiles, bomber (bomber 180°). Water row 5: coastguard in HQ or bomber column.
+    private func applyPostSetupSpawnIfNeeded() {
+        guard !didApplyPostSetupSpawn else { return }
+
+        var emptyNorthern: [(Int, Int)] = []
+        for row in 0..<5 {
+            for col in 0..<5 {
+                let k = cellKey(row, col)
+                if cellMarks[k] == nil {
+                    emptyNorthern.append((row, col))
+                }
+            }
+        }
+        guard emptyNorthern.count >= 4 else { return }
+        didApplyPostSetupSpawn = true
+
+        emptyNorthern.shuffle()
+        let picked = Array(emptyNorthern.prefix(4))
+        var units: [UnitMark] = [.headquarters, .missile, .missile, .bomber]
+        units.shuffle()
+
+        var hqColumn: Int?
+        var bomberColumn: Int?
+        for i in 0..<4 {
+            let (row, col) = picked[i]
+            let unit = units[i]
+            let key = cellKey(row, col)
+            cellMarks[key] = unit
+            if unit == .headquarters { hqColumn = col }
+            if unit == .bomber {
+                bomberColumn = col
+                bomberRotationDegreesByKey[key] = 180
+            }
+        }
+
+        let coastColumns = Set([hqColumn, bomberColumn].compactMap { $0 })
+        guard let coastCol = coastColumns.randomElement() else { return }
+        let coastRow = GridStrikeSetupGrid.postSetupCoastguardRowIndex
+        let coastKey = cellKey(coastRow, coastCol)
+        if cellMarks[coastKey] == nil {
+            cellMarks[coastKey] = .coastguard
+        }
+    }
 }
 
 // MARK: - Scroll notification (watchOS-friendly)
@@ -196,9 +284,15 @@ private extension Notification.Name {
 private struct GridStrikeSetupGrid: View {
     /// Water rows are 5…8 (top→bottom). Coastguard is placed on **row 8** (southern water, next to bottom grass).
     fileprivate static let coastguardWaterRowIndex = 8
+    /// Extra coastguard after setup (northern water, adjacent to top grass).
+    fileprivate static let postSetupCoastguardRowIndex = 5
 
     let phase: SetupPhase
     let cellMarks: [String: UnitMark]
+    let bomberRotationDegreesByKey: [String: Double]
+    let northernPlayfieldStrikes: [String: NorthernPlayfieldStrike]
+    let bombingRunActive: Bool
+    let bombingSourceKey: String?
     let onCellTap: (Int, Int) -> Void
 
     private static let columns = 5
@@ -284,9 +378,16 @@ private struct GridStrikeSetupGrid: View {
     }
 
     /// During coastguard placement, only that water row is full color; all other tiles are ghosted.
+    /// When complete + bombing run: only rows 2–4 are full color.
     /// Otherwise: empty non-playable tiles ghosted; occupied tiles full color.
     private func isVisuallyGhosted(row: Int, col: Int) -> Bool {
-        guard phase != .complete else { return false }
+        if phase == .complete {
+            if bombingRunActive {
+                if let bk = bombingSourceKey, cellKey(row, col) == bk { return false }
+                return row < 2 || row > 4
+            }
+            return false
+        }
 
         if phase == .placeCoastguard {
             return row != Self.coastguardWaterRowIndex
@@ -314,13 +415,28 @@ private struct GridStrikeSetupGrid: View {
 
     private func tileView(row: Int, column col: Int, width: CGFloat, height: CGFloat) -> some View {
         let water = isWaterTile(row: row)
-        let dimmed = phase == .complete ? false : isVisuallyGhosted(row: row, col: col)
+        let dimmed = isVisuallyGhosted(row: row, col: col)
         /// Every tile off the coastguard row while placing it (including occupied grass).
         let offCoastguardFocusRow = phase == .placeCoastguard && row != Self.coastguardWaterRowIndex
         let coastguardOffRowGhost = dimmed && phase == .placeCoastguard
         let selectable = isSelectable(row: row, col: col)
         let mark = mark(at: row, col)
+        let bomberRotation = bomberRotationDegreesByKey[cellKey(row, col)] ?? 0
         let fontSize = min(width, height) * 0.42
+        let key = cellKey(row, col)
+        let buttonDisabled: Bool = {
+            if phase == .complete {
+                if bombingRunActive {
+                    if row >= 2 && row <= 4 { return false }
+                    if let bk = bombingSourceKey, bk == key { return false }
+                    return true
+                }
+                if row < 5 { return false }
+                if row >= 9 && row <= 13, let m = mark, m == .missile || m == .bomber { return false }
+                return true
+            }
+            return mark == nil && !selectable
+        }()
 
         return Button {
             onCellTap(row, col)
@@ -331,6 +447,7 @@ private struct GridStrikeSetupGrid: View {
                     .scaledToFill()
                     .frame(width: width, height: height)
                     .clipped()
+                    .rotationEffect(.degrees(mark == .bomber ? bomberRotation : 0))
                     .saturation(offCoastguardFocusRow ? 1 : (coastguardOffRowGhost ? 0.88 : 1))
                     .brightness(dimmed && !offCoastguardFocusRow ? (coastguardOffRowGhost ? -0.04 : 0.05) : 0)
                     .opacity(dimmed && !offCoastguardFocusRow ? (coastguardOffRowGhost ? 0.86 : 0.99) : 1)
@@ -351,10 +468,21 @@ private struct GridStrikeSetupGrid: View {
                         .shadow(color: .black.opacity(0.95), radius: 2, y: 1)
                 }
 
+                if phase == .complete, row < 5, let strike = northernPlayfieldStrikes[key] {
+                    Image(strike == .hit ? "ExplosionHit" : "ExplosionMiss")
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: width * 0.92, height: height * 0.92)
+                        .allowsHitTesting(false)
+                }
+
                 Rectangle()
                     .strokeBorder(
-                        dimmed ? Color.black.opacity(coastguardOffRowGhost ? 0.5 : 0.42) : Color.black,
-                        lineWidth: dimmed ? 1.5 : 2
+                        bombingSourceKey == key
+                            ? Color.red
+                            : (dimmed ? Color.black.opacity(coastguardOffRowGhost ? 0.5 : 0.42) : Color.black),
+                        lineWidth: bombingSourceKey == key ? 2.5 : (dimmed ? 1.5 : 2)
                     )
             }
             .compositingGroup()
@@ -363,9 +491,8 @@ private struct GridStrikeSetupGrid: View {
             .clipShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // watchOS dims disabled buttons. Only disable empty non-playable cells; occupied cells
-        // stay enabled so they don’t look ghosted — taps still no-op in handleCellTap.
-        .disabled(phase != .complete && mark == nil && !selectable)
+        // watchOS dims disabled buttons. When complete: playfield rows 0–4 + southern missiles/bombers stay enabled (full color); rest dimmed.
+        .disabled(buttonDisabled)
     }
 }
 
