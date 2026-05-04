@@ -48,6 +48,13 @@ private enum NorthernPlayfieldStrike: Equatable {
     case miss
 }
 
+private enum BombingDropOverlay: Equatable {
+    /// Unit on the tile — colored `explosion` asset.
+    case onUnit
+    /// Empty grass — `explosion_black` asset.
+    case onGrass
+}
+
 private struct GridStrikeFlowView: View {
     @State private var phase: SetupPhase = .welcome
     @State private var cellMarks: [String: UnitMark] = [:]
@@ -56,7 +63,19 @@ private struct GridStrikeFlowView: View {
     @State private var didApplyPostSetupSpawn = false
     @State private var northernPlayfieldStrikes: [String: NorthernPlayfieldStrike] = [:]
     @State private var bombingRunActive = false
+    @State private var bombingChoosingTarget = false
     @State private var bombingSourceKey: String?
+    @State private var bombingDropOverlays: [String: BombingDropOverlay] = [:]
+    /// Northern water tile (row 6) showing downed bomber; same column as coastguard when shot down.
+    @State private var planeInWaterTileKey: String?
+    @State private var bomberShotDownInstruction: String?
+
+    @State private var missileRunActive = false
+    @State private var missileChoosingTarget = false
+    @State private var missileSourceKey: String?
+    @State private var missileStrikeOverlays: [String: BombingDropOverlay] = [:]
+    @State private var missileInWaterTileKey: String?
+    @State private var missileShotDownInstruction: String?
 
     var body: some View {
         Group {
@@ -101,7 +120,15 @@ private struct GridStrikeFlowView: View {
                 bomberRotationDegreesByKey: bomberRotationDegreesByKey,
                 northernPlayfieldStrikes: northernPlayfieldStrikes,
                 bombingRunActive: bombingRunActive,
+                bombingChoosingTarget: bombingChoosingTarget,
                 bombingSourceKey: bombingSourceKey,
+                bombingDropOverlays: bombingDropOverlays,
+                planeInWaterTileKey: planeInWaterTileKey,
+                missileRunActive: missileRunActive,
+                missileChoosingTarget: missileChoosingTarget,
+                missileSourceKey: missileSourceKey,
+                missileStrikeOverlays: missileStrikeOverlays,
+                missileInWaterTileKey: missileInWaterTileKey,
                 onCellTap: handleCellTap
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -112,7 +139,7 @@ private struct GridStrikeFlowView: View {
                 Text(instructionText)
                     .font(.caption.weight(.semibold))
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                    .lineLimit(3)
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.92), radius: 4, y: 2)
                     .shadow(color: .black.opacity(0.55), radius: 1, y: 0)
@@ -138,8 +165,20 @@ private struct GridStrikeFlowView: View {
     }
 
     private var instructionText: String {
+        if bombingRunActive && bombingChoosingTarget {
+            return "Define bombing area!"
+        }
+        if missileRunActive && missileChoosingTarget {
+            return "Define missile strike!"
+        }
+        if phase == .complete, let shotDown = missileShotDownInstruction {
+            return shotDown
+        }
+        if phase == .complete, let shotDown = bomberShotDownInstruction {
+            return shotDown
+        }
         if bombingRunActive {
-            return "Bombing area"
+            return ""
         }
         switch phase {
         case .welcome: return ""
@@ -158,6 +197,51 @@ private struct GridStrikeFlowView: View {
 
     private func mark(at row: Int, _ col: Int) -> UnitMark? {
         cellMarks[cellKey(row, col)]
+    }
+
+    /// Post-setup coastguard lives on northern water (`postSetupCoastguardRowIndex`).
+    private func northernCoastguardColumn() -> Int? {
+        let r = GridStrikeSetupGrid.postSetupCoastguardRowIndex
+        for c in 0..<5 where mark(at: r, c) == .coastguard {
+            return c
+        }
+        return nil
+    }
+
+    /// True when the vertical three-drop path shares the coastguard column and at least one cell is north of row-5 water (above the cruiser).
+    private func bombingPathCrossesAboveNorthernCoastguard(startRow: Int, col: Int) -> Bool {
+        guard let coastCol = northernCoastguardColumn(), coastCol == col else { return false }
+        let coastWaterRow = GridStrikeSetupGrid.postSetupCoastguardRowIndex
+        for i in 0..<3 {
+            let r = startRow - i
+            if r >= 0 && r < coastWaterRow { return true }
+        }
+        return false
+    }
+
+    /// 2×2 square (lower-left `r`,`c`) spans columns `c` and `c+1`; shot down if coastguard column is either.
+    private func missileSquareCrossesNorthernCoastguard(lowerLeftRow r: Int, col c: Int) -> Bool {
+        guard let coastCol = northernCoastguardColumn() else { return false }
+        return coastCol == c || coastCol == c + 1
+    }
+
+    /// After bombing or shoot-down, the southern bomber tile (rows 9–13) becomes empty grass.
+    private func replaceSouthernBomberWithGrassIfNeeded(bomberTileKey: String?) {
+        guard let key = bomberTileKey else { return }
+        guard let rowString = key.split(separator: "_").first, let row = Int(rowString) else { return }
+        guard row >= 9 && row <= 13 else { return }
+        guard cellMarks[key] == .bomber else { return }
+        cellMarks.removeValue(forKey: key)
+        bomberRotationDegreesByKey.removeValue(forKey: key)
+    }
+
+    /// After missile strike or shoot-down, the southern missile tile (rows 9–13) becomes empty grass.
+    private func replaceSouthernMissileWithGrassIfNeeded(missileTileKey: String?) {
+        guard let key = missileTileKey else { return }
+        guard let rowString = key.split(separator: "_").first, let row = Int(rowString) else { return }
+        guard row >= 9 && row <= 13 else { return }
+        guard cellMarks[key] == .missile else { return }
+        cellMarks.removeValue(forKey: key)
     }
 
     private func isSelectable(row: Int, col: Int) -> Bool {
@@ -179,20 +263,44 @@ private struct GridStrikeFlowView: View {
             let key = cellKey(row, col)
             let m = mark(at: row, col)
 
-            if !bombingRunActive, row >= 9 && row <= 13, m == .bomber {
+            if !bombingRunActive, !missileRunActive, row >= 9 && row <= 13, m == .bomber {
+                bomberShotDownInstruction = nil
                 bombingRunActive = true
+                bombingChoosingTarget = true
                 bombingSourceKey = key
                 return
             }
 
-            let inNorthernStrikeBand = bombingRunActive ? (row >= 2 && row <= 4) : (row >= 0 && row < 5)
-            guard inNorthernStrikeBand, col >= 0 && col < 5 else { return }
+            if !bombingRunActive, !missileRunActive, row >= 9 && row <= 13, m == .missile {
+                missileShotDownInstruction = nil
+                missileRunActive = true
+                missileChoosingTarget = true
+                missileSourceKey = key
+                return
+            }
+
+            if bombingRunActive && bombingChoosingTarget {
+                guard row >= 2 && row <= 4, col >= 0 && col < 5 else { return }
+                bombingChoosingTarget = false
+                runBombingDropSequence(startRow: row, col: col)
+                return
+            }
+
+            if missileRunActive && missileChoosingTarget {
+                guard row >= 1 && row <= 4, col >= 0 && col <= 3 else { return }
+                missileChoosingTarget = false
+                runMissileStrikeSequence(lowerLeftRow: row, col: col)
+                return
+            }
+
+            // Drops in progress: ignore all taps (buttons stay enabled so watchOS does not dim the grid).
+            if bombingRunActive { return }
+
+            guard row >= 0 && row < 5, col >= 0 && col < 5 else { return }
             guard northernPlayfieldStrikes[key] == nil else { return }
             let hasStrikeableUnit = m == .headquarters || m == .missile || m == .bomber
             northernPlayfieldStrikes[key] = hasStrikeableUnit ? .hit : .miss
-            if hasStrikeableUnit {
-                WKInterfaceDevice.current().play(.click)
-            }
+            WKInterfaceDevice.current().play(.notification)
             return
         }
         guard isSelectable(row: row, col: col) else { return }
@@ -271,6 +379,66 @@ private struct GridStrikeFlowView: View {
             cellMarks[coastKey] = .coastguard
         }
     }
+
+    /// Three cells northward from the chosen row; 1s between each overlay. Unit → colored explosion, empty grass → black.
+    /// Shot down: no explosion overlays; only message + plane on coastguard tile.
+    private func runBombingDropSequence(startRow: Int, col: Int) {
+        let sourceKey = bombingSourceKey
+        if bombingPathCrossesAboveNorthernCoastguard(startRow: startRow, col: col) {
+            bomberShotDownInstruction = "Bomber shot down by enemy coastguard!"
+            planeInWaterTileKey = cellKey(GridStrikeSetupGrid.planeInWaterRowIndex, col)
+            replaceSouthernBomberWithGrassIfNeeded(bomberTileKey: sourceKey)
+            bombingRunActive = false
+            bombingChoosingTarget = false
+            bombingSourceKey = nil
+            return
+        }
+        Task { @MainActor in
+            for i in 0..<3 {
+                let r = startRow - i
+                guard r >= 0 else { continue }
+                let k = cellKey(r, col)
+                if cellMarks[k] != nil {
+                    bombingDropOverlays[k] = .onUnit
+                } else {
+                    bombingDropOverlays[k] = .onGrass
+                }
+                WKInterfaceDevice.current().play(.notification)
+                if i < 2 {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                }
+            }
+            replaceSouthernBomberWithGrassIfNeeded(bomberTileKey: sourceKey)
+            bombingRunActive = false
+            bombingChoosingTarget = false
+            bombingSourceKey = nil
+        }
+    }
+
+    /// 2×2 from lower-left `(r,c)` — cells `(r,c)`, `(r,c+1)`, `(r-1,c)`, `(r-1,c+1)`. Overlays apply together; no delay.
+    /// Shot down: no strike overlays; message + `MissileInWater` on row 6 (lower-left column).
+    private func runMissileStrikeSequence(lowerLeftRow r: Int, col c: Int) {
+        let sourceKey = missileSourceKey
+        if missileSquareCrossesNorthernCoastguard(lowerLeftRow: r, col: c) {
+            missileShotDownInstruction = "Missile shot down by enemy coastguard!"
+            missileInWaterTileKey = cellKey(GridStrikeSetupGrid.planeInWaterRowIndex, c)
+            replaceSouthernMissileWithGrassIfNeeded(missileTileKey: sourceKey)
+            missileRunActive = false
+            missileChoosingTarget = false
+            missileSourceKey = nil
+            return
+        }
+        let cells = [(r, c), (r, c + 1), (r - 1, c), (r - 1, c + 1)]
+        for (rr, cc) in cells {
+            let k = cellKey(rr, cc)
+            missileStrikeOverlays[k] = cellMarks[k] != nil ? .onUnit : .onGrass
+        }
+        WKInterfaceDevice.current().play(.notification)
+        replaceSouthernMissileWithGrassIfNeeded(missileTileKey: sourceKey)
+        missileRunActive = false
+        missileChoosingTarget = false
+        missileSourceKey = nil
+    }
 }
 
 // MARK: - Scroll notification (watchOS-friendly)
@@ -286,13 +454,23 @@ private struct GridStrikeSetupGrid: View {
     fileprivate static let coastguardWaterRowIndex = 8
     /// Extra coastguard after setup (northern water, adjacent to top grass).
     fileprivate static let postSetupCoastguardRowIndex = 5
+    /// `PlaneInWater` overlay sits one water row south of the coastguard (row 5).
+    fileprivate static let planeInWaterRowIndex = 6
 
     let phase: SetupPhase
     let cellMarks: [String: UnitMark]
     let bomberRotationDegreesByKey: [String: Double]
     let northernPlayfieldStrikes: [String: NorthernPlayfieldStrike]
     let bombingRunActive: Bool
+    let bombingChoosingTarget: Bool
     let bombingSourceKey: String?
+    let bombingDropOverlays: [String: BombingDropOverlay]
+    let planeInWaterTileKey: String?
+    let missileRunActive: Bool
+    let missileChoosingTarget: Bool
+    let missileSourceKey: String?
+    let missileStrikeOverlays: [String: BombingDropOverlay]
+    let missileInWaterTileKey: String?
     let onCellTap: (Int, Int) -> Void
 
     private static let columns = 5
@@ -378,14 +556,21 @@ private struct GridStrikeSetupGrid: View {
     }
 
     /// During coastguard placement, only that water row is full color; all other tiles are ghosted.
-    /// When complete + bombing run: only rows 2–4 are full color.
+    /// When complete + choosing bombing band: only rows 2–4 (+ bomber) are full color.
+    /// When complete + choosing missile: only rows 1–4 cols 0–3 (+ southern missile) — ghost top row, col 4, rows 5–13.
+    /// After the bombing start tile is chosen (`!bombingChoosingTarget`), all tiles stay full color (including during drops).
     /// Otherwise: empty non-playable tiles ghosted; occupied tiles full color.
     private func isVisuallyGhosted(row: Int, col: Int) -> Bool {
         if phase == .complete {
-            if bombingRunActive {
+            if bombingRunActive && bombingChoosingTarget {
                 if let bk = bombingSourceKey, cellKey(row, col) == bk { return false }
                 return row < 2 || row > 4
             }
+            if missileRunActive && missileChoosingTarget {
+                if let mk = missileSourceKey, cellKey(row, col) == mk { return false }
+                return col == Self.columns - 1 || row == 0 || row >= 5
+            }
+            // Bombing drops, shot-down, or idle complete: no ghosting anywhere.
             return false
         }
 
@@ -424,16 +609,20 @@ private struct GridStrikeSetupGrid: View {
         let bomberRotation = bomberRotationDegreesByKey[cellKey(row, col)] ?? 0
         let fontSize = min(width, height) * 0.42
         let key = cellKey(row, col)
+        // Complete phase: never disable (watchOS dims disabled buttons). `handleCellTap` ignores irrelevant taps.
         let buttonDisabled: Bool = {
             if phase == .complete {
-                if bombingRunActive {
+                if missileRunActive && missileChoosingTarget {
+                    if row >= 1 && row <= 4 && col >= 0 && col <= 3 { return false }
+                    if let mk = missileSourceKey, mk == key { return false }
+                    return true
+                }
+                if bombingRunActive && bombingChoosingTarget {
                     if row >= 2 && row <= 4 { return false }
                     if let bk = bombingSourceKey, bk == key { return false }
                     return true
                 }
-                if row < 5 { return false }
-                if row >= 9 && row <= 13, let m = mark, m == .missile || m == .bomber { return false }
-                return true
+                return false
             }
             return mark == nil && !selectable
         }()
@@ -477,12 +666,48 @@ private struct GridStrikeSetupGrid: View {
                         .allowsHitTesting(false)
                 }
 
+                if phase == .complete, let drop = bombingDropOverlays[key] ?? missileStrikeOverlays[key] {
+                    Image(drop == .onUnit ? "ExplosionHit" : "ExplosionMiss")
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: width * 0.92, height: height * 0.92)
+                        .allowsHitTesting(false)
+                }
+
+                if phase == .complete, planeInWaterTileKey == key {
+                    Image("PlaneInWater")
+                        .renderingMode(.template)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: width * 0.88, height: height * 0.88)
+                        .foregroundStyle(Color(red: 0.34, green: 0.34, blue: 0.36))
+                        .rotationEffect(.degrees(45))
+                        .allowsHitTesting(false)
+                }
+
+                if phase == .complete, missileInWaterTileKey == key {
+                    Image("MissileInWater")
+                        .renderingMode(.template)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: width * 0.88, height: height * 0.88)
+                        .foregroundStyle(Color(red: 0.34, green: 0.34, blue: 0.36))
+                        .rotationEffect(.degrees(45))
+                        .allowsHitTesting(false)
+                }
+
                 Rectangle()
                     .strokeBorder(
-                        bombingSourceKey == key
+                        (bombingChoosingTarget && bombingSourceKey == key)
+                            || (missileChoosingTarget && missileSourceKey == key)
                             ? Color.red
                             : (dimmed ? Color.black.opacity(coastguardOffRowGhost ? 0.5 : 0.42) : Color.black),
-                        lineWidth: bombingSourceKey == key ? 2.5 : (dimmed ? 1.5 : 2)
+                        lineWidth: (bombingChoosingTarget && bombingSourceKey == key)
+                            || (missileChoosingTarget && missileSourceKey == key)
+                            ? 2.5 : (dimmed ? 1.5 : 2)
                     )
             }
             .compositingGroup()
