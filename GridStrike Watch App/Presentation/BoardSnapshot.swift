@@ -15,7 +15,10 @@ struct BoardSnapshot: Equatable {
     let modal: Modal?
 
     enum Modal: Equatable {
-        case destructionAlert(Unit)
+        /// Carries the attacker side and every unit destroyed by the most
+        /// recently resolved attack so the overlay can render one aggregated
+        /// perspective-aware message ("Enemy …" vs "Your …").
+        case destructionAlert(DestructionAlert)
         case victory
         case defeat
     }
@@ -32,7 +35,7 @@ struct BoardSnapshot: Equatable {
 
         let modal: Modal? = {
             switch state.mode {
-            case .destructionAlert(let unit): return .destructionAlert(unit)
+            case .destructionAlert(let alert): return .destructionAlert(alert)
             case .victory: return .victory
             case .defeat: return .defeat
             case .welcome, .setup, .play: return nil
@@ -47,8 +50,13 @@ struct BoardSnapshot: Equatable {
     private static func makeTile(at pos: GridPosition, state: GameState) -> TileRenderModel {
         let mark = state.board.unit(at: pos)
         let hideEnemyArt = hidesEnemyUnitArt(at: pos, state: state)
+        // A coastguard cell whose cruiser has been destroyed renders the wreck
+        // artwork directly — no explosion overlay, no enemy-art hiding (we
+        // want the player to see exactly where the CG used to sit).
+        let isSunkCG = isSunkCoastguardCell(at: pos, state: state)
 
         let background: TileBackground = {
+            if isSunkCG { return .coastguardSunk }
             if hideEnemyArt {
                 return Zones.isWater(pos.row) ? .water : .grass
             }
@@ -67,6 +75,9 @@ struct BoardSnapshot: Equatable {
         let offCoastguard = isPlaceCoastguardOffFocus(at: pos, state: state)
 
         let strikeOverlay: ExplosionKind? = {
+            // Sunk-CG cells drop their strike overlay so the wreck art reads
+            // cleanly without an explosion stacked on top.
+            guard !isSunkCG else { return nil }
             guard state.phase.isInGame else { return nil }
             // Each tile only ever carries strikes against its own side. Mid-water
             // rows (6, 7) belong to no side and stay clean.
@@ -79,21 +90,34 @@ struct BoardSnapshot: Equatable {
         }()
 
         let dropOverlay: ExplosionKind? = {
+            // Same suppression as `strikeOverlay`: a destroyed CG shows the
+            // wreck art instead of a missile/bomb explosion.
+            guard !isSunkCG else { return nil }
             guard state.phase.isInGame else { return nil }
             guard let side = Zones.side(forRow: pos.row) else { return nil }
             return state.bombingOverlays[side][pos] ?? state.missileOverlays[side][pos]
         }()
 
-        let wreck: WaterWreck? = {
+        let wreckInfo: (kind: WaterWreck, attacker: Side)? = {
             guard state.phase.isInGame else { return nil }
             // Plane/missile-in-water sits on the *attacker*'s wreck row, indexed by
             // the attacker side.
             for attacker in Side.allCases {
-                if state.planeInWater[attacker] == pos { return .plane }
-                if state.missileInWater[attacker] == pos { return .missile }
+                if state.planeInWater[attacker] == pos { return (.plane, attacker) }
+                if state.missileInWater[attacker] == pos { return (.missile, attacker) }
             }
             return nil
         }()
+        let wreck = wreckInfo?.kind
+        let wreckRotation: Double = {
+            switch wreckInfo?.attacker {
+            case .player:   return 45  // your downed bomber/missile (existing tilt)
+            case .opponent: return 135 // enemy wreck — 90° + extra 45° clockwise
+            case .none:     return 0
+            }
+        }()
+        let isLastTurnHighlight =
+            state.phase.isInGame && state.lastTurnHighlight.contains(pos)
 
         // The selection border only applies to player-driven targeting; during the
         // opponent's turn the AI's hidden launcher should not flash a border.
@@ -121,7 +145,9 @@ struct BoardSnapshot: Equatable {
             northStrikeOverlay: strikeOverlay,
             dropOverlay: dropOverlay,
             waterWreck: wreck,
+            wreckRotationDegrees: wreckRotation,
             border: border,
+            isLastTurnHighlight: isLastTurnHighlight,
             isDisabled: isDisabled
         )
     }
@@ -130,8 +156,57 @@ struct BoardSnapshot: Equatable {
 
     /// During play (and post-victory while the modal is up), opponent tiles on rows 0–5
     /// hide their unit graphics — strike/bomb logic still runs against `state.board`.
+    ///
+    /// The opponent coastguard is revealed when:
+    /// • the player's missile was shot down in that column (**DEBUG**-independent), or
+    /// • **`GridStrikeDebug.showEnemyCoastguardPlacement`** is enabled (**DEBUG** only).
     private static func hidesEnemyUnitArt(at pos: GridPosition, state: GameState) -> Bool {
-        state.phase.isInGame && pos.row <= Zones.coastguardEnemyRow
+#if DEBUG
+        if GridStrikeDebug.showAllEnemyPiecesOnPlayfield,
+           state.phase.isInGame,
+           pos.row <= Zones.coastguardEnemyRow {
+            return false
+        }
+#endif
+        guard state.phase.isInGame, pos.row <= Zones.coastguardEnemyRow else { return false }
+        return !revealsEnemyCoastguard(at: pos, state: state)
+    }
+
+    /// True when this tile is the wreck of a destroyed coastguard — i.e. it
+    /// sits on a side's coastguard row, that side originally had a coastguard
+    /// at this column (per `boardAtPlayStart`), and the live board no longer
+    /// has a coastguard for this side. Reads from `boardAtPlayStart` so the
+    /// wreck stays anchored to the original column even after the cruiser
+    /// mark has been removed from the live board.
+    private static func isSunkCoastguardCell(at pos: GridPosition, state: GameState) -> Bool {
+        guard state.phase.isInGame else { return false }
+        guard let side = Zones.side(forRow: pos.row) else { return false }
+        guard pos.row == Zones.coastguardRow(of: side) else { return false }
+        guard let original = state.boardAtPlayStart,
+              let originalCol = original.coastguardColumn(of: side) else { return false }
+        // Cruiser still alive on this side — render the regular CG art (or
+        // hide it for the enemy CG until it's revealed). We only swap to the
+        // wreck art once the live coastguard is gone.
+        guard state.board.coastguardColumn(of: side) == nil else { return false }
+        return pos.col == originalCol
+    }
+
+    private static func revealsEnemyCoastguard(at pos: GridPosition, state: GameState) -> Bool {
+        guard pos.row == Zones.coastguardEnemyRow,
+              state.board.unit(at: pos) == .coastguard,
+              let cgCol = state.board.coastguardColumn(of: .opponent),
+              pos.col == cgCol else {
+            return false
+        }
+        // Any successful interception by the enemy CG (missile *or* bomber) reveals
+        // the cruiser so the orange highlight + wreck readout makes sense.
+        if state.missileInWater[.player] != nil { return true }
+        if state.planeInWater[.player] != nil { return true }
+#if DEBUG
+        return GridStrikeDebug.showEnemyCoastguardPlacement
+#else
+        return false
+#endif
     }
 
     private static func isPlaceCoastguardOffFocus(at pos: GridPosition, state: GameState) -> Bool {
@@ -177,6 +252,13 @@ struct BoardSnapshot: Equatable {
         isSelected: Bool
     ) -> Bool {
         if state.isModalActive { return true }
+        // Lock every tile while the post-attack pause is held — the reducer would
+        // refuse the tap anyway, but disabling here keeps the watch UI consistent
+        // with the suppressed banner.
+        if state.isInPostAttackCooldown { return true }
+        // Same lock while the camera is scrolling toward the AI's queued impact:
+        // the reducer ignores taps until `applyOpponentImpact` fires.
+        if state.pendingOpponentImpact != nil { return true }
 
         switch state.phase {
         case .welcome, .victory, .defeat:

@@ -46,12 +46,12 @@ enum SetupStep: CaseIterable, Equatable {
     }
 
     /// Allowed placement rows for this step.
+    /// Player pieces (HQ, missiles, bomber) belong only on southern grass—never on the
+    /// opponent's northern turf. Coastguard uses the dedicated water row south of no-man's-land.
     func isValidPlacement(_ row: Int) -> Bool {
         switch self {
-        case .placeHeadquarter:
+        case .placeHeadquarter, .placeMissile1, .placeMissile2, .placeBomber:
             return Zones.isSouthGrass(row)
-        case .placeMissile1, .placeMissile2, .placeBomber:
-            return Zones.isAnyGrass(row)
         case .placeCoastguard:
             return row == Zones.coastguardPlayerRow
         }

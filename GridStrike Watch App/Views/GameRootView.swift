@@ -3,13 +3,16 @@
 //  GridStrike Watch App
 //
 //  Top-level switch — welcome vs. play container, plus the modal overlays. Uses one
-//  exhaustive switch over `UIMode` instead of separate optional/bool checks.
+//  exhaustive switch over `UIMode` instead of separate optional/bool checks. Owns
+//  the post-game "Map" toggle so VictoryOverlay/DefeatOverlay can flip into a
+//  full-screen reveal of the AI's setup.
 //
 
 import SwiftUI
 
 struct GameRootView: View {
     @Environment(GameStore.self) private var store
+    @State private var showOpponentMap = false
 
     var body: some View {
         let snapshot = BoardSnapshot.compute(store.state)
@@ -19,22 +22,49 @@ struct GameRootView: View {
             case .welcome:
                 WelcomeView()
 
-            case .destructionAlert(let unit):
+            case .destructionAlert(let alert):
                 PlayContainerView(snapshot: snapshot)
-                DestructionAlertOverlay(unit: unit) {
+                DestructionAlertOverlay(alert: alert) {
                     store.send(.acknowledgeDestructionAlert)
                 }
 
             case .victory:
-                PlayContainerView(snapshot: snapshot)
-                VictoryOverlay {
-                    store.send(.newGame)
+                if showOpponentMap {
+                    // No PlayContainerView behind — keep the frozen map exactly as
+                    // bright as the live grid (any bleed-through from the live
+                    // explosion overlays makes it read as ghosted/dark).
+                    OpponentSetupMapView(
+                        frozenBoard: store.state.boardAtPlayStart ?? store.state.board
+                    ) {
+                        showOpponentMap = false
+                    }
+                } else {
+                    PlayContainerView(snapshot: snapshot)
+                    VictoryOverlay(
+                        onNewGame: {
+                            showOpponentMap = false
+                            store.send(.newGame)
+                        },
+                        onShowMap: { showOpponentMap = true }
+                    )
                 }
 
             case .defeat:
-                PlayContainerView(snapshot: snapshot)
-                DefeatOverlay {
-                    store.send(.newGame)
+                if showOpponentMap {
+                    OpponentSetupMapView(
+                        frozenBoard: store.state.boardAtPlayStart ?? store.state.board
+                    ) {
+                        showOpponentMap = false
+                    }
+                } else {
+                    PlayContainerView(snapshot: snapshot)
+                    DefeatOverlay(
+                        onNewGame: {
+                            showOpponentMap = false
+                            store.send(.newGame)
+                        },
+                        onShowMap: { showOpponentMap = true }
+                    )
                 }
 
             case .setup, .play:
@@ -56,13 +86,12 @@ private struct PlayContainerView: View {
                 .allowsHitTesting(!store.state.isModalActive)
 
             // Banner pinned to top — VStack + Spacer keeps multi-line text top-anchored
-            // (Text in a maxHeight overlay would otherwise vertically center).
+            // (Text in a maxHeight overlay would otherwise vertically center). The bar
+            // sits just below the safe-area top edge so it's only slightly taller than
+            // the text itself; no negative offset (which would push it behind the
+            // watchOS status area and look like it extends to the bezel).
             VStack(spacing: 0) {
                 InstructionBanner(banner: snapshot.banner)
-                    .padding(.horizontal, 4)
-                    .padding(.top, 10)
-                    .offset(y: -15)
-                    .frame(maxWidth: .infinity)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

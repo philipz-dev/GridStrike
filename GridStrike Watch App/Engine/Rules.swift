@@ -28,16 +28,28 @@ enum Rules {
         return result
     }
 
-    /// 2x2 missile footprint anchored at the lower-left for the player, upper-left
-    /// for the opponent (so the 2x2 always extends "into" the defender's half).
+    /// Missile X-pattern: the targeted tile + its four diagonal neighbours
+    /// (top-left, top-right, bottom-right, bottom-left). Symmetric, so `attacker`
+    /// is unused; kept in the signature for API stability with bomber rules.
+    ///
+    /// The anchor can sit anywhere on the defender's grass, so diagonals from a
+    /// corner column or a back-row anchor can fall off the grid. We drop those
+    /// out-of-bounds cells here — they show no explosion and never feed the
+    /// reducer's overlay maps. Diagonals that fall into the defender's water /
+    /// coastguard row are kept and resolved like any other cell: a hit on the
+    /// coastguard, a miss on plain water.
     static func missilePositions(anchor pos: GridPosition, attacker: Side) -> [GridPosition] {
-        let dr: Int = (attacker == .player) ? -1 : +1
-        return [
+        _ = attacker
+        let candidates = [
             pos,
-            GridPosition(pos.row, pos.col + 1),
-            GridPosition(pos.row + dr, pos.col),
-            GridPosition(pos.row + dr, pos.col + 1),
+            GridPosition(pos.row - 1, pos.col - 1),
+            GridPosition(pos.row - 1, pos.col + 1),
+            GridPosition(pos.row + 1, pos.col + 1),
+            GridPosition(pos.row + 1, pos.col - 1),
         ]
+        return candidates.filter {
+            Zones.allRows.contains($0.row) && Zones.allColumns.contains($0.col)
+        }
     }
 
     // MARK: - Coastguard interception
@@ -56,17 +68,13 @@ enum Rules {
         }
     }
 
-    /// Missile 2x2 anchored at lower-left (player) / upper-left (opponent). The
-    /// coastguard defends a single column. Intercept when the salvo is anchored
-    /// on that column (`c == coastCol`); the rightmost-column edge case
-    /// (coastCol == 4 ⇒ c == 3) keeps the only 2x2 that includes column 4.
+    /// Missile X-pattern interception: the salvo is shot down only when the
+    /// **pointed-at centre tile** sits in the defender's coastguard column.
+    /// Diagonals straddling that column do **not** trigger interception.
     static func missileIntercepted(board: Board, anchor: GridPosition, attacker: Side) -> Bool {
         let defender = attacker.opposite
         guard let coastCol = board.coastguardColumn(of: defender) else { return false }
-        let lastCol = Zones.columnCount - 1
-        if coastCol == anchor.col { return true }
-        if coastCol == lastCol && anchor.col == lastCol - 1 { return true }
-        return false
+        return anchor.col == coastCol
     }
 
     // MARK: - Victory

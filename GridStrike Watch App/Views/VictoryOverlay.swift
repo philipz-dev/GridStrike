@@ -7,12 +7,13 @@ import SwiftUI
 
 struct VictoryOverlay: View {
     let onNewGame: () -> Void
+    let onShowMap: () -> Void
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.72)
                 .ignoresSafeArea()
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 Text("Victory!")
                     .font(.title2.weight(.bold))
                     .multilineTextAlignment(.center)
@@ -25,6 +26,14 @@ struct VictoryOverlay: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
+                .padding(.horizontal, 8)
+                Button(action: onShowMap) {
+                    Text("Map")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
                 .padding(.horizontal, 8)
             }
             .padding(16)

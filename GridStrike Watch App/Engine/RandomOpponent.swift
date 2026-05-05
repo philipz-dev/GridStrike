@@ -56,7 +56,9 @@ struct RandomOpponent: OpponentPolicy {
 
     private func pickBomberTarget(state: GameState) -> Action? {
         var candidates: [GridPosition] = []
-        for row in Zones.bombingTargetRows(attacker: .opponent) {
+        // Match SmartOpponent — even the random AI shouldn't deliberately waste
+        // drops off the back of the board (rows 12, 13 for the opponent).
+        for row in Zones.safeBombingTargetRows(attacker: .opponent) {
             for col in Zones.allColumns {
                 candidates.append(GridPosition(row, col))
             }

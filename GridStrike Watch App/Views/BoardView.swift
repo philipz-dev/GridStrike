@@ -15,10 +15,8 @@ struct BoardView: View {
     @Environment(GameStore.self) private var store
     @State private var didInitialScroll = false
 
-    private static let columns = Zones.columnCount
-    private static let rows = Zones.rowCount
+    private static let rows = BoardGridMetrics.rowCount
     private static let bottomCurveTapReserve: CGFloat = 10
-    private static let horizontalPadding: CGFloat = 2
 
     private var bottomRowScrollId: String { "row-\(Self.rows - 1)" }
 
@@ -26,7 +24,7 @@ struct BoardView: View {
         let scrollRequest = store.state.scrollRequest
 
         GeometryReader { geo in
-            let tileSize = max(1, (geo.size.width - Self.horizontalPadding * 2) / CGFloat(Self.columns))
+            let tileSize = BoardGridMetrics.tileWidth(forContainerWidth: geo.size.width)
             let bottomInset = geo.safeAreaInsets.bottom
             let pullDown = max(0, bottomInset - Self.bottomCurveTapReserve)
 
@@ -35,7 +33,7 @@ struct BoardView: View {
                     VStack(spacing: 0) {
                         ForEach(0..<Self.rows, id: \.self) { row in
                             HStack(spacing: 0) {
-                                ForEach(0..<Self.columns, id: \.self) { col in
+                                ForEach(0..<BoardGridMetrics.columnCount, id: \.self) { col in
                                     let pos = GridPosition(row, col)
                                     if let model = snapshot.tiles[pos] {
                                         TileView(
@@ -49,9 +47,28 @@ struct BoardView: View {
                             }
                             .frame(height: tileSize)
                             .id("row-\(row)")
+
+                            // 0-pt anchors used by the reducer to centre row pairs
+                            // around shoot-down events — placed *between* their two
+                            // rows so `scrollTo(_:anchor: .center)` puts the seam at
+                            // the viewport centre.
+                            // Row 5 ↔ 6: enemy CG + player wreck (player's attack
+                            // got intercepted).
+                            // Row 7 ↔ 8: opponent wreck + player CG (player's CG
+                            // intercepted an AI attack).
+                            if row == 5 {
+                                Color.clear
+                                    .frame(height: 0)
+                                    .id(Zones.opponentDefenseSeamID)
+                            }
+                            if row == 7 {
+                                Color.clear
+                                    .frame(height: 0)
+                                    .id(Zones.playerDefenseSeamID)
+                            }
                         }
                     }
-                    .padding(.horizontal, Self.horizontalPadding)
+                    .padding(.horizontal, BoardGridMetrics.horizontalPadding)
                     .padding(.bottom, -pullDown)
                 }
                 .scrollIndicators(.hidden)
@@ -65,9 +82,15 @@ struct BoardView: View {
                 }
                 .onChange(of: scrollRequest) { _, newValue in
                     guard let request = newValue else { return }
+                    let anchor: UnitPoint = {
+                        switch request.anchor {
+                        case .center: return .center
+                        case .bottom: return .bottom
+                        }
+                    }()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
                         withAnimation(.easeInOut(duration: 0.45)) {
-                            proxy.scrollTo("row-\(request.row)", anchor: .center)
+                            proxy.scrollTo(request.id, anchor: anchor)
                         }
                     }
                 }

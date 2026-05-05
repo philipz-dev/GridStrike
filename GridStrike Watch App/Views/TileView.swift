@@ -115,20 +115,23 @@ struct TileView: View, Equatable {
             .scaledToFit()
             .frame(width: tileSize * 0.88, height: tileSize * 0.88)
             .foregroundStyle(Color(red: 0.34, green: 0.34, blue: 0.36))
-            .rotationEffect(.degrees(45))
+            .rotationEffect(.degrees(model.wreckRotationDegrees))
             .allowsHitTesting(false)
     }
 
     @ViewBuilder
     private var borderRect: some View {
         let isSelected = model.border == .selected
+        let isHighlighted = model.isLastTurnHighlight && !isSelected
         let strokeColor: Color = {
             if isSelected { return .red }
+            if isHighlighted { return .orange }
             if dimmed { return Color.black.opacity(coastguardOffRowGhost ? 0.5 : 0.42) }
             return .black
         }()
         let strokeWidth: CGFloat = {
             if isSelected { return 2.5 }
+            if isHighlighted { return 2.5 }
             return dimmed ? 1.5 : 2
         }()
         Rectangle()

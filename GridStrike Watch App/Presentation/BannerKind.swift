@@ -14,7 +14,9 @@ enum BannerKind: Equatable {
     case defineBombArea
     case defineMissileStrike
     case shotDown(Weapon, attacker: Side)
-    case setupComplete
+    /// Pre-first-attack hint shown only on the player's idle turn until they
+    /// fire their first bomb / missile / grenade.
+    case startAttack
     case opponentThinking
 
     var localized: String {
@@ -34,8 +36,8 @@ enum BannerKind: Equatable {
             case (.bomber, .opponent): return "Enemy bomber shot down by your coastguard!"
             case (.missile, .opponent): return "Enemy missile shot down by your coastguard!"
             }
-        case .setupComplete:
-            return "Setup complete"
+        case .startAttack:
+            return "Start attack!"
         case .opponentThinking:
             return "Thinking…"
         }
@@ -52,7 +54,13 @@ extension GameState {
         case .play(let play):
             switch play {
             case .idle:
-                return currentTurn == .player ? .setupComplete : .opponentThinking
+                // Mute the banner during the post-attack pause so the player can
+                // absorb the just-rendered impact without competing copy.
+                if isInPostAttackCooldown { return .none }
+                if currentTurn == .opponent { return .opponentThinking }
+                // Hide the "Start attack!" hint as soon as the player has actually
+                // launched something — derived from any record of a player strike.
+                return hasPlayerAttacked ? .none : .startAttack
             case .shotDown(let weapon, let attacker):
                 return .shotDown(weapon, attacker: attacker)
             case .choosingBombTarget:

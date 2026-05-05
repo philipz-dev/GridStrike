@@ -38,12 +38,39 @@ enum Zones {
     /// half (their coastguard + grass) in view so they can watch the AI's impact.
     static let playerOverviewRow = 11
 
-    /// Allowed rows for choosing a bombing target (3 cells north of choice → row 0..4).
-    static let bombingTargetRows: ClosedRange<Int> = 2...4
-    /// Allowed lower-left rows for a missile 2x2.
-    static let missileTargetRows: ClosedRange<Int> = 1...4
-    /// Allowed lower-left columns for a missile 2x2 (so c+1 stays in range).
-    static let missileTargetColumns: ClosedRange<Int> = 0...3
+    /// Scroll anchor between rows 7 and 8 — opponent wreck row + player CG row.
+    /// Centres both on screen after the **player's** coastguard intercepts an
+    /// enemy plane / missile.
+    static let playerDefenseSeamID = "seam-7-8"
+    /// Scroll anchor between rows 5 and 6 — enemy CG row + player wreck row.
+    /// Centres both on screen after the **enemy's** coastguard intercepts a
+    /// player-launched plane / missile.
+    static let opponentDefenseSeamID = "seam-5-6"
+
+    /// Returns the seam id that centres the defender's coastguard row and the
+    /// adjacent attacker's wreck row on screen.
+    static func coastguardDefenseSeamID(defender: Side) -> String {
+        switch defender {
+        case .player:   return playerDefenseSeamID    // wreck on row 7, CG on row 8
+        case .opponent: return opponentDefenseSeamID  // CG on row 5, wreck on row 6
+        }
+    }
+
+    /// Allowed rows for choosing a bombing target. The full opponent grass is
+    /// legal — back-row anchors (rows 0, 1) walk drops off the top of the
+    /// board, which `Rules.bombingPositions` filters out. The human is free to
+    /// pay that cost; the AI uses `safeBombingTargetRows(attacker:)` to stay
+    /// inside the all-3-drops-land window.
+    static let bombingTargetRows: ClosedRange<Int> = 0...4
+    /// Allowed centre rows for the missile X-pattern (player attacker default).
+    /// The full opponent grass — corner-row diagonals clip out of bounds and
+    /// front-row (row 4) diagonals spill into the coastguard water row; both
+    /// cases are handled by `Rules.missilePositions`.
+    static let missileTargetRows: ClosedRange<Int> = 0...4
+    /// Allowed centre columns for the missile X-pattern. Corner columns (0, 4)
+    /// produce only three in-bounds salvo cells because two diagonals fall off
+    /// the side of the board.
+    static let missileTargetColumns: ClosedRange<Int> = 0...4
     /// Rows the player can grenade-strike during play. Includes the enemy grass (0–4) and the enemy
     /// coastguard's water row (5) so the player can take out the coastguard before mounting a column attack.
     static let grenadeTargetRows: ClosedRange<Int> = 0...5
@@ -113,13 +140,26 @@ enum Zones {
         grenadeTargetRows(attacker: attacker).contains(pos.row)
     }
 
-    /// Allowed bombing-target rows for an attacker. Drops fall away from the
-    /// attacker's home; we pick the three rows of the defender's grass closest to
-    /// the water so all 3 drops land on the defender's grass.
+    /// Legal bombing-target rows for an attacker — the full defender's grass.
+    /// Drops fall away from the attacker, so anchors near the defender's back
+    /// row spill drops off the edge of the board; `Rules.bombingPositions`
+    /// filters those, and the player is free to "waste" the missing drops by
+    /// picking such an anchor.
     static func bombingTargetRows(attacker: Side) -> ClosedRange<Int> {
         switch attacker {
-        case .player: return 2...4      // drops go north → rows 0/1/2..2/3/4
-        case .opponent: return 9...11   // drops go south → rows 9/10/11..11/12/13
+        case .player: return 0...4        // full opponent grass
+        case .opponent: return 9...13     // full player grass
+        }
+    }
+
+    /// The subset of `bombingTargetRows(attacker:)` where all three drops are
+    /// guaranteed to land on the defender's grass — i.e. anchoring here never
+    /// wastes a bomb on a non-existent tile. Used by the AI so it doesn't
+    /// throw away drops; the human can still tap the wider legal range.
+    static func safeBombingTargetRows(attacker: Side) -> ClosedRange<Int> {
+        switch attacker {
+        case .player: return 2...4        // drops 0/1/2 .. 2/3/4
+        case .opponent: return 9...11     // drops 9/10/11 .. 11/12/13
         }
     }
 
@@ -127,12 +167,15 @@ enum Zones {
         bombingTargetRows(attacker: attacker).contains(pos.row) && allColumns.contains(pos.col)
     }
 
-    /// Allowed lower-left rows for an attacker's 2x2 missile. The 2x2 hugs the
-    /// defender's water edge so it always covers the coastguard row + 1 grass row.
+    /// Allowed centre rows for an attacker's missile X-pattern — the full grass
+    /// of the defender. Diagonals from a back-row anchor (row 0 / row 13) clip
+    /// out of bounds; diagonals from the water-edge anchor (row 4 / row 9) spill
+    /// into the coastguard water row. `Rules.missilePositions` drops the
+    /// out-of-bounds cells so they're never resolved or rendered.
     static func missileTargetRows(attacker: Side) -> ClosedRange<Int> {
         switch attacker {
-        case .player: return 1...4       // 2x2 anchored at lower-left rows 1..4
-        case .opponent: return 9...12    // mirrored: 2x2 anchored at upper-left rows 9..12
+        case .player: return 0...4        // full opponent grass
+        case .opponent: return 9...13     // full player grass
         }
     }
 

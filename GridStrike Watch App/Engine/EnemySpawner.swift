@@ -3,7 +3,9 @@
 //  GridStrike Watch App
 //
 //  Computer opponent setup once the player finishes placing units. The coastguard is
-//  now grenade-killable, so the AI mixes two recipes 50/50 to stay unpredictable:
+//  now grenade-killable, so the AI mixes two recipes — biased 70/30 toward Fortress
+//  so the player most often sees the coastguard parked in front of HQ + bomber,
+//  while Mirage still keeps the layout from becoming a fixed pattern:
 //
 //  • Fortress — HQ + bomber + 1 missile cluster behind the coastguard column. While
 //    the coastguard lives, every bomber/missile attack on that column is intercepted;
@@ -47,9 +49,12 @@ enum EnemySpawner {
         // 1) Coastguard column — corner bias for full intercept reach.
         let coastCol = pickCoastguardColumn(rng: &rng)
 
-        // 2) HQ — 50% same column as coastguard ("fortress"), 50% far away ("mirage").
+        // 2) HQ — 70% same column as coastguard ("fortress"), 30% far away ("mirage").
+        //    The fortress bias keeps the coastguard standing in front of HQ + bomber
+        //    most of the time (what the player intuitively expects), while the 30%
+        //    mirage rate prevents the placement from becoming a recognisable pattern.
         //    The chosen mode degrades gracefully via the fallback chain when blocked.
-        let preferFortress = Bool.random(using: &rng)
+        let preferFortress = Double.random(in: 0..<1, using: &rng) < 0.7
         let hqConstraints: [(GridPosition) -> Bool] = preferFortress
             ? [
                 { p in p.col == coastCol },

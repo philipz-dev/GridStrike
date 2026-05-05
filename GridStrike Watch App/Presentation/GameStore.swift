@@ -21,7 +21,7 @@ final class GameStore {
 
     init(
         initial: GameState = .newGame(),
-        opponent: any OpponentPolicy = RandomOpponent()
+        opponent: any OpponentPolicy = SmartOpponent()
     ) {
         self.state = initial
         self.opponent = opponent
@@ -46,6 +46,14 @@ final class GameStore {
         case .scheduleOpponentTurn(let delay):
             schedule(after: delay) { [weak self] in
                 self?.runOpponentStep()
+            }
+        case .scheduleCompleteTurn(let delay):
+            schedule(after: delay) { [weak self] in
+                self?.send(.completeTurn)
+            }
+        case .scheduleApplyOpponentImpact(let delay):
+            schedule(after: delay) { [weak self] in
+                self?.send(.applyOpponentImpact)
             }
         }
     }

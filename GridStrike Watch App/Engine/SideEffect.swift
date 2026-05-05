@@ -26,4 +26,11 @@ enum SideEffect: Equatable {
     /// delay. The store interprets this by asking its `OpponentPolicy` for the next
     /// `Action` and dispatching it.
     case scheduleOpponentTurn(afterSeconds: Double)
+    /// Lift the post-attack cooldown after a short pause so the player can absorb
+    /// the just-rendered impact before the camera scrolls and the other side plays.
+    case scheduleCompleteTurn(afterSeconds: Double)
+    /// Wait for the impact-scroll animation to finish, then dispatch
+    /// `Action.applyOpponentImpact` so overlays + haptics fire only once the
+    /// camera is parked over the target tile.
+    case scheduleApplyOpponentImpact(afterSeconds: Double)
 }
