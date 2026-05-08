@@ -7,91 +7,39 @@
     <style>
         :root { --apple-red: #ff3b30; --apple-blue: #007aff; --bg-dark: #0a0a0a; --container-bg: #161617; --text-main: #eeeeee; --text-dim: #86868b; }
         
-        /* Fade-in animatie voor de hele pagina */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes iconPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(255, 59, 48, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); } }
 
-        /* Pulse animatie voor het icoon */
-        @keyframes iconPulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
-            70% { box-shadow: 0 0 0 15px rgba(255, 59, 48, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
-        }
-
-        body { 
-            background-color: var(--bg-dark); 
-            color: var(--text-main); 
-            font-family: -apple-system, system-ui, sans-serif; 
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            min-height: 100vh;
-            animation: fadeIn 0.8s ease-out;
-        }
-
+        body { background-color: var(--bg-dark); color: var(--text-main); font-family: -apple-system, system-ui, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; animation: fadeIn 0.8s ease-out; }
         header { padding: 80px 20px 40px 20px; text-align: center; }
 
-        .app-icon { 
-            width: 110px; height: 110px; 
-            border-radius: 24px; 
-            margin-bottom: 25px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            animation: iconPulse 2s infinite; /* Activeert de pulse */
-            transition: transform 0.3s ease;
-        }
-        
+        .app-icon { width: 110px; height: 110px; border-radius: 24px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); animation: iconPulse 2s infinite; transition: transform 0.3s ease; }
         .app-icon:hover { transform: scale(1.05); }
 
         h1 { font-size: 3rem; margin: 0; font-weight: 800; letter-spacing: -1px; }
         .tagline { font-size: 1.4rem; color: var(--text-dim); margin: 10px 0 0 0; }
 
-        .container { 
-            max-width: 900px; width: 90%; 
-            background: var(--container-bg); 
-            border-radius: 28px; 
-            padding: 40px; 
-            margin-bottom: 30px; 
-            box-sizing: border-box;
-            transition: transform 0.3s ease, background 0.3s ease;
-        }
-
-        /* Subtiele hover op de containers */
-        .container:hover {
-            background: #1c1c1e;
-        }
+        .container { max-width: 900px; width: 90%; background: var(--container-bg); border-radius: 28px; padding: 40px; margin-bottom: 30px; box-sizing: border-box; transition: transform 0.3s ease, background 0.3s ease; }
+        .container:hover { background: #1c1c1e; }
 
         .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; text-align: left; }
         .feature-box h3 { color: var(--apple-red); margin-top: 0; font-size: 1.2rem; margin-bottom: 10px; }
         .feature-box p { line-height: 1.5; color: var(--text-main); margin: 0; }
 
-        .screenshots-scroll { 
-            display: flex; overflow-x: auto; gap: 20px; 
-            padding-bottom: 20px; width: 100%; 
-            scrollbar-width: thin; scrollbar-color: #333 transparent; 
-            -webkit-overflow-scrolling: touch; 
-        }
-
-        .screenshot-item { 
-            flex: 0 0 auto; width: 200px; height: 245px; 
-            background: #000; border-radius: 32px; 
-            border: 1px solid #333; display: flex; 
-            align-items: center; justify-content: center; 
-            overflow: hidden; 
-            transition: transform 0.3s ease;
-        }
-
+        .screenshots-scroll { display: flex; overflow-x: auto; gap: 20px; padding-bottom: 20px; width: 100%; scrollbar-width: thin; scrollbar-color: #333 transparent; -webkit-overflow-scrolling: touch; }
+        .screenshot-item { flex: 0 0 auto; width: 200px; height: 245px; background: #000; border-radius: 32px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: transform 0.3s ease; }
         .screenshot-item:hover { transform: translateY(-5px); border-color: var(--apple-red); }
         .screenshot-item img { width: 100%; height: 100%; object-fit: cover; }
 
+        /* App Store Knop Styling */
+        .appstore-button { margin: 20px 0 40px 0; transition: transform 0.2s ease; display: inline-block; }
+        .appstore-button:hover { transform: scale(1.05); }
+        .appstore-badge { height: 60px; width: auto; }
+
         h2 { font-size: 1.8rem; margin-top: 0; margin-bottom: 25px; }
         a { color: var(--apple-blue); text-decoration: none; font-weight: 500; }
-        
         hr { border: 0; border-top: 1px solid #333; margin: 25px 0; }
-
-        footer { padding: 60px; color: var(--text-dim); font-size: 0.85rem; text-align: center; }
+        footer { padding: 40px; color: var(--text-dim); font-size: 0.85rem; text-align: center; }
     </style>
 </head>
 <body>
@@ -127,14 +75,19 @@
     <div class="container">
         <h2 style="margin-top:0">Visuals</h2>
         <div class="screenshots-scroll">
-            <div class="screenshot-item"><img src="shot1.png" alt="Setup Phase"></div>
-            <div class="screenshot-item"><img src="shot2.png" alt="Grid View"></div>
-            <div class="screenshot-item"><img src="shot3.png" alt="Combat Action"></div>
-            <div class="screenshot-item"><img src="shot4.png" alt="Victory Screen"></div>
-            <div class="screenshot-item"><img src="shot5.png" alt="Settings"></div>
+            <div class="screenshot-item"><img src="shot1.png" alt="Welcome"></div>
+            <div class="screenshot-item"><img src="shot2.png" alt="Setup"></div>
+            <div class="screenshot-item"><img src="shot3.png" alt="Combat"></div>
+            <div class="screenshot-item"><img src="shot4.png" alt="Victory"></div>
+            <div class="screenshot-item"><img src="shot5.png" alt="Map"></div>
         </div>
         <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 10px; text-align: center;">&larr; Scroll or Swipe to view &rarr;</p>
     </div>
+
+    <!-- App Store Badge -->
+    <a href="#" class="appstore-button">
+        <img src="appstore.png" alt="Download on the App Store" class="appstore-badge">
+    </a>
 
     <div class="container">
         <h3>Support & Privacy</h3>
