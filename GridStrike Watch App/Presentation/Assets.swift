@@ -13,7 +13,10 @@ enum Assets {
     static let water = Image("water")
     static let headquarters = Image("HeadquarterTile")
     static let missile = Image("MissileTile")
-    static let bomber = Image("BomberTile")
+    /// Bomber on the player’s home grass — opaque art with grass baked in (`bomber.png`).
+    static let bomberOnGrass = Image("bomber")
+    /// Bomber everywhere else (enemy zone, fly-through overlays): transparent silhouette.
+    static let bomberTransparent = Image("bomber_transparent")
     static let coastguard = Image("CruiserTile")
     /// Wreck art rendered on a coastguard tile after the cruiser is destroyed
     /// (grenade hit, or a missile diagonal landing on the coastguard row).
@@ -38,20 +41,24 @@ enum Assets {
     /// produces; horizontally clipped to the watch width.
     static let parchment = Image("Parchment")
 
-    static func tileImage(for background: TileBackground) -> Image {
+    static func tileImage(for background: TileBackground, at position: GridPosition) -> Image {
         switch background {
         case .grass: return grass
         case .water: return water
-        case .unit(let unit): return image(for: unit)
+        case .unit(let unit): return unitTileImage(unit, at: position)
         case .coastguardSunk: return coastguardSunk
         }
     }
 
-    static func image(for unit: Unit) -> Image {
+    private static func unitTileImage(_ unit: Unit, at position: GridPosition) -> Image {
         switch unit {
         case .headquarters: return headquarters
         case .missile: return missile
-        case .bomber: return bomber
+        case .bomber:
+            if Zones.southGrass.contains(position.row) {
+                return bomberOnGrass
+            }
+            return bomberTransparent
         case .coastguard: return coastguard
         }
     }

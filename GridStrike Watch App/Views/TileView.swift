@@ -45,7 +45,7 @@ struct TileView: View, Equatable {
 
     @ViewBuilder
     private var background: some View {
-        Assets.tileImage(for: model.background)
+        Assets.tileImage(for: model.background, at: model.position)
             .resizable()
             .scaledToFill()
             .frame(width: tileSize, height: tileSize)

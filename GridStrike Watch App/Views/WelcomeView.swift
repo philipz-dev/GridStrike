@@ -25,9 +25,9 @@ struct WelcomeView: View {
     var body: some View {
         ZStack {
             if showBomberDemo {
-                BomberDemo(onClose: { showBomberDemo = false })
+                Demo_Bomber(onClose: { showBomberDemo = false })
             } else if showMissileDemo {
-                MissileDemo(onClose: { showMissileDemo = false })
+                Demo_Missile(onClose: { showMissileDemo = false })
             } else if showManual {
                 // Inline presentation — no `.fullScreenCover`, so no system
                 // close button is layered on top of the manual's own X.
