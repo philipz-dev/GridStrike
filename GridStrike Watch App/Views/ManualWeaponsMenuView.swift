@@ -31,13 +31,32 @@ struct ManualWeaponsMenuView: View {
 
     /// Title between the × row and weapon tiles.
     private static let guideTitleTopPadding: CGFloat = 4
-    private static let guideTitleBlockHeight: CGFloat = 22
+    /// Matches the gradient band height used for Guide title layout reserve.
+    private static let guideTitleBlockHeight: CGFloat = 34
 
     /// Space below the Guide title before the 2×2 grid.
     private static let gridTopInsetBelowTopBar: CGFloat = 8
 
     /// Touch target row height for top controls (aligned with system time band).
     private static let topBarRowHeight: CGFloat = 32
+
+    /// Full-width band behind the Guide title (black → clear, bottom-heavy).
+    private static let guideTitleGradientHeight: CGFloat = guideTitleBlockHeight
+
+    /// Black fading upward behind weapon labels (fraction of icon height).
+    private static let weaponLabelGradientHeightFactor: CGFloat = 0.42
+
+    private static var guideTitleGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.black.opacity(0.44),
+                Color.black.opacity(0.18),
+                Color.clear,
+            ],
+            startPoint: .bottom,
+            endPoint: .top
+        )
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -68,12 +87,18 @@ struct ManualWeaponsMenuView: View {
                         .padding(.top, geo.safeAreaInsets.top)
                         .padding(.horizontal, 8)
 
-                    Text("Guide")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, Self.guideTitleTopPadding)
+                    ZStack {
+                        Self.guideTitleGradient
+                            .frame(maxWidth: .infinity)
+                            .frame(height: Self.guideTitleGradientHeight)
+
+                        Text("Guide")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, Self.guideTitleTopPadding)
 
                     grid(iconSide: iconSide)
                         .frame(width: geo.size.width * 0.94)
@@ -94,8 +119,8 @@ struct ManualWeaponsMenuView: View {
             Button {
                 onBack()
             } label: {
-                Text("×")
-                    .font(.system(size: 26, weight: .medium, design: .rounded))
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
                     .frame(width: Self.topBarRowHeight, height: Self.topBarRowHeight)
@@ -138,6 +163,7 @@ struct ManualWeaponsMenuView: View {
         action: @escaping () -> Void
     ) -> some View {
         let labelFontSize = min(22, max(11, iconSide * 0.24))
+        let labelBandHeight = max(36, iconSide * Self.weaponLabelGradientHeightFactor)
 
         return Button(action: action) {
             ZStack(alignment: .bottom) {
@@ -146,6 +172,19 @@ struct ManualWeaponsMenuView: View {
                     .interpolation(.high)
                     .scaledToFit()
                     .frame(width: iconSide, height: iconSide)
+
+                LinearGradient(
+                    colors: [
+                        Color.clear,
+                        Color.black.opacity(0.26),
+                        Color.black.opacity(0.52),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: labelBandHeight)
+                .frame(maxWidth: .infinity)
+                .allowsHitTesting(false)
 
                 OutlinedText(
                     title,
