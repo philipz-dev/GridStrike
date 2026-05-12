@@ -1,6 +1,6 @@
 //
 //  SideEffect.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Reducer-emitted effects interpreted by the GameStore. Keeps the engine pure and
 //  free of WatchKit/Foundation timers.

@@ -1,6 +1,6 @@
 //
 //  SetupConfirmOverlay.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  After the player places their last unit, two equal-size circular actions appear
 //  along the bottom: red ✗ restarts setup, green ✓ confirms. The board stays visible

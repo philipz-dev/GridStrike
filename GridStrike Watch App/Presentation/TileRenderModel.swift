@@ -1,6 +1,6 @@
 //
 //  TileRenderModel.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Equatable per-tile render data. TileView is `Equatable` over this so SwiftUI only
 //  redraws tiles whose render model actually changed.

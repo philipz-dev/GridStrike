@@ -1,6 +1,6 @@
 //
 //  BoardSnapshot.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  One-pass projection from GameState → render data for every tile + banner + modal.
 //  Driven entirely by `phase` / `mode`; no bool flags. Strike/overlay reads are
@@ -179,10 +179,10 @@ struct BoardSnapshot: Equatable {
     ///
     /// The opponent coastguard is revealed when:
     /// • the player's missile was shot down in that column (**DEBUG**-independent), or
-    /// • **`GridStrikeDebug.showEnemyCoastguardPlacement`** is enabled (**DEBUG** only).
+    /// • **`HQStrikeDebug.showEnemyCoastguardPlacement`** is enabled (**DEBUG** only).
     private static func hidesEnemyUnitArt(at pos: GridPosition, state: GameState) -> Bool {
 #if DEBUG
-        if GridStrikeDebug.showAllEnemyPiecesOnPlayfield,
+        if HQStrikeDebug.showAllEnemyPiecesOnPlayfield,
            state.phase.isInGame,
            pos.row <= Zones.coastguardEnemyRow {
             return false
@@ -223,7 +223,7 @@ struct BoardSnapshot: Equatable {
         if state.missileInWater[.player] != nil { return true }
         if state.planeInWater[.player] != nil { return true }
 #if DEBUG
-        return GridStrikeDebug.showEnemyCoastguardPlacement
+        return HQStrikeDebug.showEnemyCoastguardPlacement
 #else
         return false
 #endif

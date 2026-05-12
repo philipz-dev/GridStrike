@@ -1,9 +1,9 @@
 //
 //  StartView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Entry menu when `UIMode` is `.welcome`: (1) splash — `SplashBackground` + “Welcome to” /
-//  “GridStrike!” — tap anywhere to continue. (2) Tactical hub — camo + “START / ASSAULT!”
+//  “HQStrike!” — tap anywhere to continue. (2) Tactical hub — camo + “START / ASSAULT!”
 //  and “FIELD / GUIDE”; guide opens `ManualWeaponsMenuView`; demos return to the hub.
 //
 
@@ -93,7 +93,7 @@ struct StartView: View {
                 // ZStack mis-measures on watchOS and can hide the second line.
                 VStack(spacing: 6) {
                     OutlinedText("Welcome to", font: .headline.weight(.bold))
-                    OutlinedText("GridStrike!", font: .headline.weight(.bold))
+                    OutlinedText("HQStrike!", font: .headline.weight(.bold))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 12)

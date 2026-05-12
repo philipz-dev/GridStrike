@@ -1,6 +1,6 @@
 //
 //  DemoScriptedOutlineHaptic.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Shared tactile for scripted “finger down” beats when orange outlines appear.
 //  Uses `WKHapticType.start` (beginning-of-action) instead of `.click`, which is

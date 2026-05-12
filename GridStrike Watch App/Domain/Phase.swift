@@ -1,6 +1,6 @@
 //
 //  Phase.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Explicit state machine for the whole game flow. Replaces the loose collection of
 //  bool flags (bombingRunActive, missileChoosingTarget, victory, lastShotDown, …) so

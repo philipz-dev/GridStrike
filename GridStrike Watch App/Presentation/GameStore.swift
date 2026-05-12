@@ -1,6 +1,6 @@
 //
 //  GameStore.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Observable host for the game. The store holds the current `GameState`, applies
 //  reducer outputs, and interprets side effects (haptics, bomb-drop timer and the

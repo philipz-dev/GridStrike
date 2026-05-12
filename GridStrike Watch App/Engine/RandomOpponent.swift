@@ -1,6 +1,6 @@
 //
 //  RandomOpponent.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Phase-3a opponent: picks fully random — but always *valid* — taps. Used to
 //  exercise the symmetric reducer and turn flow before any heuristics ship.
@@ -37,7 +37,7 @@ struct RandomOpponent: OpponentPolicy {
     // MARK: - First tap of the turn
 
     private func pickWeaponLaunch(state: GameState) -> Action? {
-        if GridStrikeOpponentDebugStrikeFilter.prefersBomberAndMissileFirst {
+        if HQStrikeOpponentDebugStrikeFilter.prefersBomberAndMissileFirst {
             if let pos = ownUnits(state: state, of: .bomber).randomElement() { return .tap(pos) }
             if let pos = ownUnits(state: state, of: .missile).randomElement() { return .tap(pos) }
             if let pos = grenadeCandidates(state: state).randomElement() { return .tap(pos) }
@@ -72,7 +72,7 @@ struct RandomOpponent: OpponentPolicy {
             for col in Zones.allColumns {
                 let p = GridPosition(row, col)
                 let footprint = Rules.bombingPositions(target: p, attacker: .opponent)
-                guard GridStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: footprint) else {
+                guard HQStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: footprint) else {
                     continue
                 }
                 candidates.append(p)
@@ -88,7 +88,7 @@ struct RandomOpponent: OpponentPolicy {
                 let p = GridPosition(row, col)
                 if Zones.isWastedOpponentMissileAnchor(p) { continue }
                 let footprint = Rules.missilePositions(anchor: p, attacker: .opponent)
-                guard GridStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: footprint) else {
+                guard HQStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: footprint) else {
                     continue
                 }
                 candidates.append(p)
@@ -116,7 +116,7 @@ struct RandomOpponent: OpponentPolicy {
             for col in Zones.allColumns {
                 let p = GridPosition(row, col)
                 guard state.grenadeStrikes[.player][p] == nil else { continue }
-                guard GridStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: [p]) else {
+                guard HQStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: [p]) else {
                     continue
                 }
                 result.append(p)

@@ -1,6 +1,6 @@
 //
 //  LiveMissileInterceptFlight.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Same timing and motion as `Demo_Coastguard` after the mid-board scroll: pinned row-6
 //  bottom, flying sprite (`missiletransparent` or `bomber_transparent` from `BoardView`),

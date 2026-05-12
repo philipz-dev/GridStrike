@@ -1,6 +1,6 @@
 //
 //  Unit.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Game pieces and their derived metadata. Pure domain — no SwiftUI imports.
 //

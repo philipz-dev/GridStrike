@@ -1,6 +1,6 @@
 //
 //  GameRootView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Top-level switch — `.welcome` shows `StartView` (splash + tactical menu); in-game UI is
 //  `PlayContainerView` with modal overlays. One exhaustive switch over `UIMode`. After a win

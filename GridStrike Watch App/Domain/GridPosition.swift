@@ -1,6 +1,6 @@
 //
 //  GridPosition.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Type-safe (row, col) replacement for the legacy "row_col" String keys.
 //

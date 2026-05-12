@@ -1,6 +1,6 @@
 //
-//  GridStrikeDebugConfig.swift
-//  GridStrike Watch App
+//  HQStrikeDebugConfig.swift
+//  HQStrike Watch App
 //
 //  Local-only toggles (`DEBUG` targets). Fold each back off before merging or use a
 //  Release Archive so none of these paths ship.
@@ -9,7 +9,7 @@
 import Foundation
 
 #if DEBUG
-enum GridStrikeDebug {
+enum HQStrikeDebug {
     /// When **true**, the enemy coastguard cruiser is drawn on its water tile (row 5)
     /// during play instead of blending in as fogged water — handy for probing every
     /// intercept / grenade column. Default **false** so normal debug runs stay fair.
@@ -41,12 +41,12 @@ enum GridStrikeDebug {
 #endif
 
 /// Release-safe wrapper so opponent code can call one API without `#if DEBUG` at every site.
-enum GridStrikeOpponentDebugStrikeFilter {
+enum HQStrikeOpponentDebugStrikeFilter {
     /// **false** iff debug mode asks the AI to avoid player coastguard tiles *and* at least
     /// one cell in `cells` currently hosts `Unit.coastguard` on the live board.
     static func opponentMayStrike(board: Board, footprint cells: [GridPosition]) -> Bool {
         #if DEBUG
-        guard GridStrikeDebug.opponentNeverAttacksPlayerCoastguardTiles else { return true }
+        guard HQStrikeDebug.opponentNeverAttacksPlayerCoastguardTiles else { return true }
         return !cells.contains { board.unit(at: $0) == .coastguard }
         #else
         return true
@@ -56,7 +56,7 @@ enum GridStrikeOpponentDebugStrikeFilter {
     /// When **true** (DEBUG only), opponent idle turns try bomber/missile taps before grenades.
     static var prefersBomberAndMissileFirst: Bool {
         #if DEBUG
-        return GridStrikeDebug.computerUsesBomberAndMissilesFirst
+        return HQStrikeDebug.computerUsesBomberAndMissilesFirst
         #else
         return false
         #endif

@@ -1,6 +1,6 @@
 //
 //  TacticalCloseButton.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Shared 40×40 close / dismiss control — bold SF Symbol `xmark` for watchOS.
 //  Artwork is drawn at `visualAppearanceScale` inside the tap target so the 40×40 hit area is unchanged app-wide.

@@ -1,6 +1,6 @@
 //
 //  DemoTopCloseButton.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Shared top-leading × placement (weapon demos, manual, weapon hub, setup restart).
 //  Leading padding + proportional top band + upward offset — same geometry everywhere.

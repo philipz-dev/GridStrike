@@ -1,6 +1,6 @@
 //
 //  Demo_Grenade.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Grenade trailer: hand at row 12 col 2; 1s hold on that frame, then scroll to row 3 col 2; 0.3s after arrival the orange outline appears on
 //  the tapped tile (hand stays through outline dwell); yellow hit explosion (50% → 200% → 100% scale pulse) on a missile tile, then the hand hides;

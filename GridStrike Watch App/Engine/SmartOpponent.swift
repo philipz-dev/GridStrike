@@ -1,6 +1,6 @@
 //
 //  SmartOpponent.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Heuristic opponent that plays like a curious-but-cautious player. It uses ONLY
 //  information it has earned in-game (its own grenade history on the player half
@@ -180,7 +180,7 @@ struct SmartOpponent: OpponentPolicy {
 
         // DEBUG: exhaust bomber/missile launcher taps (with relaxed column safety) before
         // row-8 probes or grass hunts.
-        if GridStrikeOpponentDebugStrikeFilter.prefersBomberAndMissileFirst {
+        if HQStrikeOpponentDebugStrikeFilter.prefersBomberAndMissileFirst {
             let safeCols = belief.safeCols
             if let action = launchAction(bombers: bombers, missiles: missiles, safeCols: safeCols) {
                 return action
@@ -226,11 +226,11 @@ struct SmartOpponent: OpponentPolicy {
     }
 
     /// Grenade tap on a random unprobed row-8 column (skips columns that still hold a
-    /// player coastguard when `GridStrikeDebug.opponentNeverAttacksPlayerCoastguardTiles`).
+    /// player coastguard when `HQStrikeDebug.opponentNeverAttacksPlayerCoastguardTiles`).
     private func probeAction(state: GameState, belief: Belief) -> Action? {
         let cols = belief.unprobedRow8Cols.filter { col in
             let p = GridPosition(Zones.coastguardPlayerRow, col)
-            return GridStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: [p])
+            return HQStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: [p])
         }
         guard let col = cols.randomElement() else { return nil }
         return .tap(GridPosition(Zones.coastguardPlayerRow, col))
@@ -298,7 +298,7 @@ struct SmartOpponent: OpponentPolicy {
             for col in Zones.allColumns {
                 let p = GridPosition(row, col)
                 if attacked.contains(p) { continue }
-                if !GridStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: [p]) {
+                if !HQStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: state.board, footprint: [p]) {
                     continue
                 }
                 if !safeColSet.isEmpty, safeColSet.contains(col) {
@@ -436,7 +436,7 @@ struct SmartOpponent: OpponentPolicy {
                 let p = GridPosition(row, col)
                 if exclude.contains(p) { continue }
                 let footprint = Rules.bombingPositions(target: p, attacker: .opponent)
-                if !GridStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: board, footprint: footprint) {
+                if !HQStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: board, footprint: footprint) {
                     continue
                 }
                 if avoidFootprintHits {
@@ -464,7 +464,7 @@ struct SmartOpponent: OpponentPolicy {
                 if Zones.isWastedOpponentMissileAnchor(p) { continue }
                 if exclude.contains(p) { continue }
                 let footprint = Rules.missilePositions(anchor: p, attacker: .opponent)
-                if !GridStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: board, footprint: footprint) {
+                if !HQStrikeOpponentDebugStrikeFilter.opponentMayStrike(board: board, footprint: footprint) {
                     continue
                 }
                 if avoidFootprintHits {

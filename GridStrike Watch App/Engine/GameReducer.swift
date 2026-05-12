@@ -1,6 +1,6 @@
 //
 //  GameReducer.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Pure reducer driven by the typed `UIMode` enum and the explicit `Phase` machine.
 //  Every attack is parameterised on `state.currentTurn`, so the same code path
@@ -186,7 +186,7 @@ enum GameReducer {
             if case .setupConfirm = s.phase {
                 EnemySpawner.apply(board: &s.board, rng: &rng)
 #if DEBUG
-                if GridStrikeDebug.fillRow8WithPlayerCoastguards {
+                if HQStrikeDebug.fillRow8WithPlayerCoastguards {
                     for col in Zones.allColumns {
                         let p = GridPosition(Zones.coastguardPlayerRow, col)
                         s.board.marks[p] = .coastguard

@@ -1,6 +1,6 @@
 //
 //  OpponentSetupMapView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Post-game frozen snapshot at round start (`boardAtPlayStart`). Layout deliberately
 //  mirrors `BoardView` (same tile width, horizontal padding). Dismiss with the same
@@ -73,12 +73,12 @@ struct OpponentSetupMapView: View {
     /// but `isDisabled: false` keeps the artwork at full brightness instead
     /// of the muted half-opacity SwiftUI gives to a disabled plain Button.
     /// Opponent-zone unit art is suppressed when
-    /// **`!GridStrikeDebug.showAllEnemyObjectsOnPostGameMap`** (DEBUG only).
+    /// **`!HQStrikeDebug.showAllEnemyObjectsOnPostGameMap`** (DEBUG only).
     private func makeModel(for pos: GridPosition) -> TileRenderModel {
         let isOpponentZone = pos.row <= Zones.coastguardEnemyRow
 
 #if DEBUG
-        let obscureEnemyPieces = isOpponentZone && !GridStrikeDebug.showAllEnemyObjectsOnPostGameMap
+        let obscureEnemyPieces = isOpponentZone && !HQStrikeDebug.showAllEnemyObjectsOnPostGameMap
 #else
         let obscureEnemyPieces = false
 #endif

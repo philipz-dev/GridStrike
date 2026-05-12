@@ -1,6 +1,6 @@
 //
 //  BannerKind.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Typed instruction-text source. Consumes `UIMode` so the cascading `if`s that used
 //  to live in `instructionText` collapse into one exhaustive switch.

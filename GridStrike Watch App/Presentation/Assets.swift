@@ -1,6 +1,6 @@
 //
 //  Assets.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Cached `Image` references and small lookup helpers. Avoids re-doing string-based
 //  asset catalog lookups inside tile rendering.

@@ -137,7 +137,7 @@
 					};
 				};
 			};
-			buildConfigurationList = B1C0E0F02FA7E93100EF2910 /* Build configuration list for PBXProject "GridStrike" */;
+			buildConfigurationList = B1C0E0F02FA7E93100EF2910 /* Build configuration list for PBXProject "HQStrike" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -434,7 +434,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B1C0E0F02FA7E93100EF2910 /* Build configuration list for PBXProject "GridStrike" */ = {
+		B1C0E0F02FA7E93100EF2910 /* Build configuration list for PBXProject "HQStrike" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B1C0E0F02FA7E93100EF2911 /* Debug */,

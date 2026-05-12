@@ -1,6 +1,6 @@
 //
 //  DestructionAlertOverlay.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 
 import SwiftUI

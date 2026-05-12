@@ -1,6 +1,6 @@
 //
 //  OpponentPolicy.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Pluggable strategy for whatever drives the opponent's turn — currently a
 //  random AI used to validate the turn flow; later a heuristic AI; eventually a

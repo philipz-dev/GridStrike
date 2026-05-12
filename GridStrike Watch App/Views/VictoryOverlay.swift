@@ -1,6 +1,6 @@
 //
 //  VictoryOverlay.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  End-of-game celebration: full-bleed `victoryBackground`, title vertically centered
 //  in the lower third. Close control uses the same `GeometryReader` + overlay + `screenHeight`

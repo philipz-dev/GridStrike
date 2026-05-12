@@ -1,6 +1,6 @@
 //
 //  Side.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Marks which half of the board owns a tile or initiates an attack. The map is
 //  symmetric: rows 0–5 belong to `.opponent`, rows 8–13 to `.player`, with two

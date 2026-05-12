@@ -1,6 +1,6 @@
 //
 //  Zones.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  All grid coordinates and ranges live here. Single source of truth — no more magic
 //  numbers scattered across the view layer. Helpers come in two flavours: absolute

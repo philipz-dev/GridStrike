@@ -1,6 +1,6 @@
 //
 //  InstructionBanner.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Bound to a typed `BannerKind`; no game logic. Equatable so SwiftUI skips identical
 //  redraws while overlays are running. Renders the message inside a full-width

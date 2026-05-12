@@ -1,6 +1,6 @@
 //  Demo_Bomber.swift
 
-//  GridStrike Watch App
+//  HQStrike Watch App
 
 //
 

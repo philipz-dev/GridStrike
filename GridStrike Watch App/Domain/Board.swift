@@ -1,6 +1,6 @@
 //
 //  Board.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Mutable, value-type board state. All cell lookups go through GridPosition.
 //

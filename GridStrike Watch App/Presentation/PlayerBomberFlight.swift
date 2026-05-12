@@ -1,6 +1,6 @@
 //
 //  PlayerBomberFlight.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Same motion model as `Demo_Bomber`: mid-board scroll pin, linear scroll to row 0 while
 //  `bomber_transparent` crosses the viewport, with impact times from `tauWhenCrossingRow`.

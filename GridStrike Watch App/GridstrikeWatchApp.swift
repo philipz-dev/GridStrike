@@ -1,6 +1,6 @@
 //
-//  GridStrikeWatchApp.swift
-//  GridStrike Watch App
+//  HQStrikeWatchApp.swift
+//  HQStrike Watch App
 //
 //  App entry. Owns the single GameStore via @State and injects it into the view tree
 //  through the new Observable-aware environment.
@@ -9,7 +9,7 @@
 import SwiftUI
 
 @main
-struct GridStrikeWatchApp: App {
+struct HQStrikeWatchApp: App {
     @State private var store: GameStore
 
     init() {

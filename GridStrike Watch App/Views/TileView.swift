@@ -1,6 +1,6 @@
 //
 //  TileView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Pure presentation. The view's only input is a `TileRenderModel`; the closure is
 //  ignored when computing equality so SwiftUI can short-circuit redraws.

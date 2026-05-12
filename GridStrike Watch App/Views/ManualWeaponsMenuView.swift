@@ -1,6 +1,6 @@
 //
 //  ManualWeaponsMenuView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Full-screen camouflage with a 2×2 weapon picker (Grenade, Missile, Bomber, Coastguard).
 //

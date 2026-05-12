@@ -1,6 +1,6 @@
 //
 //  BoardGridMetrics.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Shared sizing so live `BoardView` and the frozen post-game map use identical tiles.
 //

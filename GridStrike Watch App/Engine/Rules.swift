@@ -1,6 +1,6 @@
 //
 //  Rules.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Pure rule predicates and attack geometry. Easy to unit-test without any UI.
 //  Every helper is parameterised on the attacking `Side` so the same logic drives

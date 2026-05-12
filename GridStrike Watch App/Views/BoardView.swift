@@ -1,6 +1,6 @@
 //
 //  BoardView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Scrollable 14×5 grid. Reads only from the precomputed snapshot — every tap is
 //  forwarded as `Action.tap(GridPosition)`. Reacts to `state.scrollRequest` so the

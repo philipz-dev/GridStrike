@@ -1,6 +1,6 @@
 //
 //  ManualView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Reference card with a board preview. Layout:
 //   • Floating close control (`TopLeadingTacticalCloseBar`) — same placement as weapon demos.

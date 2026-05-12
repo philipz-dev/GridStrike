@@ -1,6 +1,6 @@
 //
 //  EnemySpawner.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Computer opponent setup once the player finishes placing units. The coastguard is
 //  now grenade-killable, so the AI mixes two recipes — biased 70/30 toward Fortress

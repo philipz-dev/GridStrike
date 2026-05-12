@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Thin shell — the entire game lives in `GameRootView` (`StartView` when `.welcome`).
 //

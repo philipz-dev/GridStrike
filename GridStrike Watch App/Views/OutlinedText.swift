@@ -1,6 +1,6 @@
 //
 //  OutlinedText.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  White text crisply outlined in black for use over a busy photographic
 //  background. Built from a ZStack of eight offset copies of the label

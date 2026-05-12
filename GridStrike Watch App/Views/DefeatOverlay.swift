@@ -1,6 +1,6 @@
 //
 //  DefeatOverlay.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Lose path: full-bleed `defeatBackground`, title and subtitle vertically centered in the
 //  lower third. Close control matches `DemoTopCloseButton` geometry (default offset).

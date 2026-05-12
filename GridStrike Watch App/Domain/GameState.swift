@@ -1,6 +1,6 @@
 //
 //  GameState.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Single source of truth for the whole game. All UI is derived from this struct.
 //  Strike/overlay maps are split per side so the symmetric AI turn (phase 3) can

@@ -1,6 +1,6 @@
 //
 //  Demo_Coastguard.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Coastguard intercept trailer: fly-up with scroll pinned to row 6; on intercept, explosion overlay on row 6 scales up
 //  then fades; coastguard fades in on row 5 (`Missile intercepted by coastguard!`).

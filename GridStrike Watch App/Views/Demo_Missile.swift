@@ -1,6 +1,6 @@
 //
 //  Demo_Missile.swift
-//  GridStrike Watch App
+//  HQStrike Watch App
 //
 //  Scripted trailer: hand visible at home immediately, 0.5s hold, then hand → left home missile (row 11, col 0) → enemy anchor tap; scroll pins row 6; `missiletransparent`
 //  flies up the anchor column while the board scrolls to top; salvo + sprite removal when the centre crosses
