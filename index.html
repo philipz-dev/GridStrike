@@ -14,6 +14,11 @@
             --text-dim: #86868b; 
         }
         
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
         body { 
             background-color: var(--bg-dark); 
             color: var(--text-main); 
@@ -23,19 +28,20 @@
             flex-direction: column; 
             align-items: center; 
             min-height: 100vh; 
+            animation: fadeIn 0.8s ease-out; 
         }
 
         header { padding: 80px 20px 40px 20px; text-align: center; }
 
         .app-icon { 
-            width: 120px; height: 120px; 
-            border-radius: 28px; 
+            width: 110px; height: 110px; 
+            border-radius: 24px; 
             margin-bottom: 25px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6); 
             border: 1px solid #333;
         }
 
-        h1 { font-size: 3.5rem; margin: 0; font-weight: 800; letter-spacing: -1px; }
+        h1 { font-size: 3rem; margin: 0; font-weight: 800; letter-spacing: -1px; }
         .tagline { font-size: 1.4rem; color: var(--text-dim); margin: 10px 0 0 0; }
 
         .container { 
@@ -47,31 +53,63 @@
             box-sizing: border-box; 
         }
 
-        .experience-grid { 
+        .features { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
             gap: 30px; 
+            text-align: left; 
         }
+        .feature-box h3 { color: var(--apple-red); margin-top: 0; font-size: 1.2rem; margin-bottom: 10px; }
+        .feature-box p { line-height: 1.5; color: var(--text-main); margin: 0; }
 
-        .feature h3 { color: var(--apple-red); margin-top: 0; font-size: 1.2rem; }
-        .feature p { color: var(--text-dim); line-height: 1.5; }
-
-        .visuals-scroll { 
+        /* Intel Grid / Scroll */
+        .screenshots-scroll { 
             display: flex; 
             overflow-x: auto; 
             gap: 20px; 
             padding-bottom: 20px; 
             width: 100%; 
+            scrollbar-width: thin; 
+            scrollbar-color: #333 transparent; 
+            -webkit-overflow-scrolling: touch; 
         }
+        
+        .screenshots-scroll::-webkit-scrollbar { height: 8px; }
+        .screenshots-scroll::-webkit-scrollbar-track { background: #1a1a1a; border-radius: 10px; }
+        .screenshots-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-        .screenshot { 
+        .screenshot-item { 
             flex: 0 0 auto; 
             width: 220px; 
-            border-radius: 40px; 
-            border: 1px solid #333;
+            height: 270px; 
+            background: #000; 
+            border-radius: 35px; 
+            border: 1px solid #333; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden; 
+            transition: transform 0.3s ease; 
+        }
+        .screenshot-item:hover { transform: translateY(-5px); border-color: var(--apple-red); }
+        
+        .screenshot-item img, 
+        .screenshot-item video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            display: block;
         }
 
-        footer { padding: 60px; color: var(--text-dim); font-size: 0.9rem; text-align: center; }
+        .item-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        footer { padding: 60px; color: var(--text-dim); font-size: 0.85rem; text-align: center; }
         a { color: var(--apple-blue); text-decoration: none; }
     </style>
 </head>
@@ -85,46 +123,68 @@
 
     <div class="container">
         <h2>The Experience</h2>
-        <div class="experience-grid">
-            <div class="feature">
-                <h3>Precision Grid Warfare</h3>
-                <p>Narrow down the enemy's hidden HQ. Every move is a calculated risk in this high-stakes tactical hunt.</p>
+        <div class="features">
+            <div class="feature-box">
+                <h3>Tactical Precision</h3>
+                <p>Voer chirurgische aanvallen uit op het hart van de vijandelijke verdediging. Elke zet is een berekend risico.</p>
             </div>
-            <div class="feature">
-                <h3>Adaptive AI Command</h3>
-                <p>Face an opponent that relocates, defends, and strikes back. The SmartOpponent evolves with every turn.</p>
+            <div class="feature-box">
+                <h3>Smart AI</h3>
+                <p>De SmartOpponent herkent je patronen, verhuist zijn hoofdkwartier en voert dodelijke tegenaanvallen uit.</p>
             </div>
-            <div class="feature">
-                <h3>Tactical Haptics</h3>
-                <p>Feel the tension of the countdown and the impact of a successful strike directly on your wrist.</p>
+            <div class="feature-box">
+                <h3>Haptic Feedback</h3>
+                <p>Voel de opbouw van de aanval en de impact van de vernietiging op je pols met pulse-coded haptiek.</p>
             </div>
-            <div class="feature">
-                <h3>Built for Apple Watch</h3>
-                <p>Native watchOS performance. Optimized for quick sessions and one-handed tactical maneuvers.</p>
+            <div class="feature-box">
+                <h3>Optimized for Watch</h3>
+                <p>Native watchOS ervaring. Gebouwd voor snelheid, duidelijkheid en eenvoudige bediening via de Digital Crown.</p>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <h2>Field Intel</h2>
-        <div class="visuals-scroll">
-            <img src="shot01.png" class="screenshot" alt="Gameplay 1">
-            <img src="shot02.png" class="screenshot" alt="Gameplay 2">
-            <img src="shot03.png" class="screenshot" alt="Gameplay 3">
-            <img src="shot04.png" class="screenshot" alt="Gameplay 4">
+        <h2 style="margin-top:0">Field Intel</h2>
+        <div class="screenshots-scroll">
+            <div class="screenshot-item">
+                <video autoplay loop muted playsinline>
+                    <source src="shot01_final.mp4" type="video/mp4">
+                </video>
+            </div>
+            
+            <div class="screenshot-item">
+                <img src="shot02.png" alt="Map Hunt">
+            </div>
+
+            <div class="screenshot-item">
+                <img src="shot03.png" alt="Targeting System">
+            </div>
+
+            <div class="screenshot-item">
+                <img src="shot04.png" alt="Impact Confirmed">
+            </div>
+
+            <div class="screenshot-item">
+                <img src="shot05.png" alt="Assault Menu">
+            </div>
+
+            <div class="screenshot-item">
+                <img src="shot06.png" alt="HQ Strike Logo Intel">
+            </div>
         </div>
-        <p style="text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 15px;">&larr; Swipe to explore intel &rarr;</p>
+        <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 15px; text-align: center;">&larr; Swipe voor alle veldbeelden &rarr;</p>
     </div>
 
     <div class="container">
-        <h3>Support & Mission Briefing</h3>
-        <p>Questions? Contact Command: <a href="mailto:gridstrike@gmail.com">gridstrike@gmail.com</a></p>
-        <p style="font-size: 0.85rem; color: var(--text-dim);">Privacy Policy: HQ Strike does not collect or share any user data. All tactical data is stored locally on your device.</p>
+        <h3>Support & Privacy</h3>
+        <p>Vragen over de missie? Contact: <a href="mailto:gridstrike@gmail.com">gridstrike@gmail.com</a></p>
+        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        <p><strong>Privacy Policy:</strong> HQ Strike verzamelt geen data. Je missieresultaten worden versleuteld en lokaal op je horloge bewaard.</p>
     </div>
 
     <footer>
         &copy; 2026 Philipz Software. All rights reserved.<br>
-        <a href="https://github.com/philipz-dev/HQStrike">View on GitHub</a>
+        <a href="https://github.com/philipz-dev/HQStrike">View Source on GitHub</a>
     </footer>
 
 </body>
