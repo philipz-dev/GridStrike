@@ -15,33 +15,38 @@ struct SetupConfirmOverlay: View {
     let onConfirm: () -> Void
 
     var body: some View {
-        VStack {
-            Spacer()
-            HStack(spacing: 10) {
-                ConfirmCircleButton(
-                    systemName: "xmark",
-                    tint: .red,
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                TopLeadingTacticalCloseBar(
+                    isVisible: true,
+                    style: .destructive,
+                    accessibilityLabel: "Restart setup",
+                    screenHeight: geo.size.height,
+                    upwardOffset: TopLeadingTacticalCloseBar.hubOffsetUp,
                     action: onRestart
                 )
-                .accessibilityLabel("Restart setup")
 
-                ConfirmCircleButton(
-                    systemName: "checkmark",
-                    tint: .green,
-                    action: onConfirm
-                )
-                .accessibilityLabel("Confirm setup")
+                VStack {
+                    Spacer()
+                    HStack(spacing: 10) {
+                        Spacer(minLength: 0)
+                        ConfirmCircleButton(
+                            systemName: "checkmark",
+                            tint: .green,
+                            action: onConfirm
+                        )
+                        .accessibilityLabel("Confirm setup")
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.bottom, 4)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .padding(.bottom, 4)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-/// Translucent circular button — fill is intentionally low-alpha so the
-/// player's setup grid stays visible behind the controls. The coloured stroke
-/// gives the glyph enough edge contrast to read on grass / water tiles
-/// without needing an opaque background.
+/// Translucent circular button for the green ✓ only. The red ✗ uses `TacticalCloseButton` (destructive style).
 private struct ConfirmCircleButton: View {
     let systemName: String
     let tint: Color

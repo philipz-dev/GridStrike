@@ -65,11 +65,12 @@ enum Rules {
 
     // MARK: - Coastguard interception
 
-    /// Bomber: intercepted when the column matches the defender's coastguard column AND
-    /// at least one drop cell falls past that water row (i.e. on the defender's grass).
+    /// Bomber: intercepted when a coastguard sits in the same column on the defender's
+    /// coastguard water row **and** at least one drop cell falls past that water row
+    /// (i.e. on the defender's grass). Works with multiple cruisers on the row (DEBUG).
     static func bomberIntercepted(board: Board, target: GridPosition, attacker: Side) -> Bool {
         let defender = attacker.opposite
-        guard let coastCol = board.coastguardColumn(of: defender), coastCol == target.col else { return false }
+        guard board.hasCoastguardOnCoastRow(of: defender, column: target.col) else { return false }
         let coastRow = Zones.coastguardRow(of: defender)
         return bombingPositions(target: target, attacker: attacker).contains { pos in
             switch attacker {
@@ -79,13 +80,12 @@ enum Rules {
         }
     }
 
-    /// Missile X-pattern interception: the salvo is shot down only when the
-    /// **pointed-at centre tile** sits in the defender's coastguard column.
-    /// Diagonals straddling that column do **not** trigger interception.
+    /// Missile X-pattern interception: the salvo is shot down when the **anchor column**
+    /// hosts a defender coastguard on the coastguard water row. Diagonals straddling
+    /// that column do **not** trigger interception.
     static func missileIntercepted(board: Board, anchor: GridPosition, attacker: Side) -> Bool {
         let defender = attacker.opposite
-        guard let coastCol = board.coastguardColumn(of: defender) else { return false }
-        return anchor.col == coastCol
+        return board.hasCoastguardOnCoastRow(of: defender, column: anchor.col)
     }
 
     // MARK: - Victory

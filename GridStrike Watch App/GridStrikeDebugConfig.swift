@@ -26,9 +26,9 @@ enum GridStrikeDebug {
     static var showAllEnemyObjectsOnPostGameMap = true
 
     /// When **true**, after setup confirm every column on the player coastguard row (**8**)
-    /// gets a `.coastguard` mark (stress-test visuals / interception). Normal play uses
-    /// a single cruiser — `Board.coastguardColumn(of: .player)` only reports the first match.
-    static var fillRow8WithPlayerCoastguards = true
+    /// gets a `.coastguard` mark. Interception uses `Board.hasCoastguardOnCoastRow` per column
+    /// so each cruiser can shoot down column-aligned bombers/missiles like the real game.
+    static var fillRow8WithPlayerCoastguards = false
 
     /// When **true**, the computer never picks strikes whose footprint includes a tile that
     /// currently has a **player** `.coastguard` (grenade tap, bomber column, missile X).

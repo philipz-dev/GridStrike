@@ -7,6 +7,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum Assets {
     static let grass = Image("grass")
@@ -17,6 +20,8 @@ enum Assets {
     static let bomberOnGrass = Image("bomber")
     /// Bomber off-grass (shouldn’t appear on the grid in normal play) and fly-through overlays.
     static let bomberTransparent = Image("bomber_transparent")
+    /// Missile fly-through overlay (`BoardView` / intercept `TimelineView` paths).
+    static let missileTransparent = Image("missiletransparent")
     static let coastguard = Image("CruiserTile")
     /// Wreck art rendered on a coastguard tile after the cruiser is destroyed
     /// (grenade hit, or a missile diagonal landing on the coastguard row).
@@ -77,5 +82,13 @@ enum Assets {
         case .hit: return explosionHit
         case .miss: return explosionMiss
         }
+    }
+
+    /// Decodes flight overlay bitmaps once at launch so the first `TimelineView` run avoids catalog decode on the hot path.
+    static func warmFlightOverlayDecoding() {
+        #if canImport(UIKit)
+        _ = UIImage(named: "bomber_transparent")
+        _ = UIImage(named: "missiletransparent")
+        #endif
     }
 }

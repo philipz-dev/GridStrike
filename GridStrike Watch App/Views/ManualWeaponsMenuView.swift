@@ -36,24 +36,24 @@ struct ManualWeaponsMenuView: View {
     /// (sized off `heightSlot`) doesn't push past the bottom safe area.
     private static let cellPadding: CGFloat = 2
 
+    /// Pushes only the top-leading × lower; title/grid clearance stays the pre-nudge layout so icons stay large.
+    private static let videoGuideCloseExtraDown: CGFloat = 25
+
     /// Title between the × row and weapon tiles.
     private static let guideTitleTopPadding: CGFloat = 4
-    /// Matches the gradient band height used for Guide title layout reserve.
+    /// Matches the gradient band height used for the “Video guides” title layout reserve.
     private static let guideTitleBlockHeight: CGFloat = 34
 
-    /// Same size as `Text("Guide")` below — used to nudge title + grid upward so they clear the bottom bezel.
+    /// Same size as the title `Text` below — used to nudge title + grid upward so they clear the bottom bezel.
     private static let guideTitleFontSize: CGFloat = 18
 
-    /// Approximate line height for `Text("Guide")` at `guideTitleFontSize` on watch.
+    /// Approximate line height for the title at `guideTitleFontSize` on watch.
     private static let guideTitleFontLineHeight: CGFloat = 22
 
-    /// Space below the Guide title before the 2×2 grid.
+    /// Space below the title before the 2×2 grid.
     private static let gridTopInsetBelowTopBar: CGFloat = 8
 
-    /// Touch target row height for top controls (aligned with system time band).
-    private static let topBarRowHeight: CGFloat = 32
-
-    /// Full-width band behind the Guide title (black → clear, bottom-heavy).
+    /// Full-width band behind the title (black → clear, bottom-heavy).
     private static let guideTitleGradientHeight: CGFloat = guideTitleBlockHeight
 
     /// Black fading upward behind weapon labels (fraction of icon height).
@@ -73,8 +73,14 @@ struct ManualWeaponsMenuView: View {
 
     var body: some View {
         GeometryReader { geo in
+            let closeUp = TopLeadingTacticalCloseBar.hubOffsetUp
+            let closeDown = Self.videoGuideCloseExtraDown
             let topReserved =
-                geo.safeAreaInsets.top + Self.topBarRowHeight
+                geo.safeAreaInsets.top
+                + TopLeadingTacticalCloseBar.contentTopInsetClearance(
+                    screenHeight: geo.size.height,
+                    upwardOffset: closeUp
+                )
                 + Self.guideTitleTopPadding + Self.guideTitleBlockHeight
                 + Self.gridTopInsetBelowTopBar
             let bottomReserved = geo.safeAreaInsets.bottom + 4
@@ -87,7 +93,7 @@ struct ManualWeaponsMenuView: View {
                 max(44, min(widthSlot, heightSlot))
             )
 
-            ZStack {
+            ZStack(alignment: .topLeading) {
                 Assets.manualMenuCamouflage
                     .resizable()
                     .scaledToFill()
@@ -96,23 +102,27 @@ struct ManualWeaponsMenuView: View {
                     .accessibilityHidden(true)
 
                 VStack(spacing: 0) {
-                    topBar
-                        .padding(.top, geo.safeAreaInsets.top)
-                        .padding(.horizontal, 8)
-
                     VStack(spacing: 0) {
                         ZStack {
                             Self.guideTitleGradient
                                 .frame(maxWidth: .infinity)
                                 .frame(height: Self.guideTitleGradientHeight)
 
-                            Text("Guide")
+                            Text("Video guides")
                                 .font(.system(size: Self.guideTitleFontSize, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white)
                                 .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.top, Self.guideTitleTopPadding)
+                        .padding(
+                            .top,
+                            geo.safeAreaInsets.top
+                                + TopLeadingTacticalCloseBar.contentTopInsetClearance(
+                                    screenHeight: geo.size.height,
+                                    upwardOffset: closeUp
+                                )
+                                + Self.guideTitleTopPadding
+                        )
 
                         grid(iconSide: iconSide)
                             .frame(width: geo.size.width * 0.94)
@@ -125,30 +135,19 @@ struct ManualWeaponsMenuView: View {
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .overlay(alignment: .topLeading) {
+                TopLeadingTacticalCloseBar(
+                    isVisible: true,
+                    accessibilityLabel: "Back",
+                    accessibilityHint: "Returns to Start game and tactical menu",
+                    screenHeight: geo.size.height,
+                    upwardOffset: closeUp,
+                    extraDown: closeDown,
+                    action: onBack
+                )
+            }
         }
         .ignoresSafeArea()
-    }
-
-    /// Dismiss × on the leading edge, aligned with the watch time row.
-    private var topBar: some View {
-        HStack(alignment: .center, spacing: 0) {
-            Button {
-                onBack()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
-                    .frame(width: Self.topBarRowHeight, height: Self.topBarRowHeight)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Back")
-            .accessibilityHint("Returns to Start game and Guide menu")
-
-            Spacer(minLength: 0)
-        }
-        .frame(height: Self.topBarRowHeight)
     }
 
     private func grid(iconSide: CGFloat) -> some View {

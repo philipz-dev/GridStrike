@@ -2,7 +2,9 @@
 //  Demo_Grenade.swift
 //  GridStrike Watch App
 //
-//  Grenade trailer: 1s delay (like Demo_Bomber), hand at row 12 col 2, scroll to row 3 col 2; orange outline, ExplosionMiss, then 1s later “No target hit!”.
+//  Grenade trailer: hand at row 12 col 2; 1s hold on that frame, then scroll to row 3 col 2; 0.3s after arrival the orange outline appears on
+//  the tapped tile (hand stays through outline dwell); yellow hit explosion (50% → 200% → 100% scale pulse) on a missile tile, then the hand hides;
+//  (home `demoMissile2` clears the same way the home bomber clears in Demo_Missile), then 1s later "Missile eliminated!".
 //
 
 import SwiftUI
@@ -32,11 +34,21 @@ struct Demo_Grenade: View {
     /// Scroll + hand motion to `grenadeHandTarget`.
     private static let scrollHandToTargetDuration: TimeInterval = 2
 
-    /// Dwell on destination before scripted miss overlay + banner.
-    private static let dwellAtDestinationBeforeMiss: TimeInterval = 1
+    /// Hold the opening frame (board + hand at home) before the scroll/hand motion begins.
+    private static let freezeBeforeHandMotion: TimeInterval = 1
 
-    /// Orange outline on target tile before `ExplosionMiss` appears.
-    private static let grenadeTargetOutlineBeforeMissDuration: TimeInterval = 0.35
+    /// Time from hand arrival at the target tile until the orange outline + haptic (total).
+    private static let secondsAfterHandArrivalBeforeOutline: TimeInterval = 0.3
+
+    /// Dwell with orange outline fully visible before the hit explosion pulse begins.
+    private static let secondsAfterOrangeOutlineBeforeExplosion: TimeInterval = 1
+    private static let orangeOutlineAnimationDuration: TimeInterval = 0.15
+
+    /// Hide the hand after the hit explosion pulse has settled (matches `TileView` pulse timing).
+    private static let delayHideHandAfterExplosionPulse: TimeInterval = 0.45
+
+    /// Opacity animation when the hand is dismissed after the explosion.
+    private static let handFadeOutDuration: TimeInterval = 0.35
 
     /// Pause after `ExplosionMiss` before the banner copy.
     private static let delayBeforeMissBanner: TimeInterval = 1
@@ -47,8 +59,10 @@ struct Demo_Grenade: View {
     /// Circular close control appears only after the scripted beat finishes.
     @State private var showDemoFinished = false
     @State private var showHand = false
+    @State private var handOpacity: CGFloat = 1
     @State private var handPosition = CGPoint.zero
     @State private var showGrenadeMissImpact = false
+    @State private var grenadeImpactPulseToken: UInt32 = 0
     @State private var showGrenadeMissBanner = false
     @State private var showGrenadeTargetOutline = false
 
@@ -59,7 +73,8 @@ struct Demo_Grenade: View {
             let pullDown = max(0, bottomInset - Self.bottomCurveTapReserve)
             let tiles = makeTileMap(
                 showGrenadeMissOnTarget: showGrenadeMissImpact,
-                outlineGrenadeTarget: showGrenadeTargetOutline
+                outlineGrenadeTarget: showGrenadeTargetOutline,
+                grenadeImpactPulseToken: grenadeImpactPulseToken
             )
 
             ZStack(alignment: .topLeading) {
@@ -115,6 +130,12 @@ struct Demo_Grenade: View {
                             withTransaction(t) {
                                 proxy.scrollTo(bottomId, anchor: .bottom)
                             }
+                            handPosition = Self.grenadeHandStartPosition(
+                                viewportSize: geo.size,
+                                pullDown: pullDown
+                            )
+                            handOpacity = 1
+                            showHand = true
                             DispatchQueue.main.async {
                                 isBoardVisible = true
                                 Task {
@@ -131,7 +152,7 @@ struct Demo_Grenade: View {
 
                 VStack(spacing: 0) {
                     if showGrenadeMissBanner {
-                        Text("No target hit!")
+                        Text("Missile eliminated!")
                             .font(.caption.weight(.semibold))
                             .multilineTextAlignment(.center)
                             .lineLimit(3)
@@ -153,6 +174,7 @@ struct Demo_Grenade: View {
                         .scaledToFit()
                         .frame(width: Self.handSize, height: Self.handSize)
                         .shadow(color: .black.opacity(0.45), radius: 3, y: 2)
+                        .opacity(handOpacity)
                         .position(handPosition)
                         .allowsHitTesting(false)
                 }
@@ -177,30 +199,19 @@ struct Demo_Grenade: View {
     ) async {
         showDemoFinished = false
         showGrenadeMissImpact = false
+        grenadeImpactPulseToken = 0
         showGrenadeMissBanner = false
         showGrenadeTargetOutline = false
-
-        try? await Task.sleep(for: .seconds(1))
+        handOpacity = 1
 
         let tw = BoardGridMetrics.tileWidth(forContainerWidth: size.width)
 
         let contentH = CGFloat(Zones.rowCount) * tw + pullDown
         let maxScroll = max(0, contentH - size.height)
 
-        let handAtStartTile = Self.handCentreWithTopOfFrameAtTileLowerThird(
-            row: Self.handStartTile.row,
-            col: Self.handStartTile.col,
-            viewportSize: size,
-            pullDown: pullDown,
-            scrollBottomPinned: true
-        )
-        let startPos = CGPoint(
-            x: handAtStartTile.x + Self.handStartHorizontalOffsetTiles * tw,
-            y: handAtStartTile.y + Self.initialHandExtraOffsetY
-        )
-
+        handPosition = Self.grenadeHandStartPosition(viewportSize: size, pullDown: pullDown)
+        handOpacity = 1
         showHand = true
-        handPosition = startPos
 
         let scrollTop = Self.clampedScrollOffsetCenteringRow(
             rowIndex: Self.grenadeHandTarget.row,
@@ -216,6 +227,8 @@ struct Demo_Grenade: View {
             scrollTopContentY: scrollTop
         )
 
+        try? await Task.sleep(for: .seconds(Self.freezeBeforeHandMotion))
+
         withAnimation(.linear(duration: Self.scrollHandToTargetDuration)) {
             proxy.scrollTo("row-\(Self.grenadeHandTarget.row)", anchor: .center)
             handPosition = endPos
@@ -223,27 +236,54 @@ struct Demo_Grenade: View {
 
         try? await Task.sleep(for: .seconds(Self.scrollHandToTargetDuration))
 
-        try? await Task.sleep(for: .seconds(Self.dwellAtDestinationBeforeMiss))
+        try? await Task.sleep(for: .seconds(Self.secondsAfterHandArrivalBeforeOutline))
 
         Self.playOutlineTapHaptic()
-        withAnimation(.easeOut(duration: 0.15)) {
+        withAnimation(.easeOut(duration: Self.orangeOutlineAnimationDuration)) {
             showGrenadeTargetOutline = true
         }
 
-        try? await Task.sleep(for: .seconds(Self.grenadeTargetOutlineBeforeMissDuration))
+        try? await Task.sleep(for: .seconds(Self.orangeOutlineAnimationDuration))
+        try? await Task.sleep(for: .seconds(Self.secondsAfterOrangeOutlineBeforeExplosion))
 
-        withAnimation(.easeOut(duration: 0.2)) {
-            showGrenadeTargetOutline = false
+        grenadeImpactPulseToken &+= 1
+        var grenadeHitTransaction = Transaction()
+        grenadeHitTransaction.disablesAnimations = true
+        withTransaction(grenadeHitTransaction) {
             showGrenadeMissImpact = true
         }
+        try? await Task.sleep(for: .seconds(Self.delayHideHandAfterExplosionPulse))
+        withAnimation(.easeOut(duration: Self.handFadeOutDuration)) {
+            handOpacity = 0
+        }
+        try? await Task.sleep(for: .seconds(Self.handFadeOutDuration))
+        showHand = false
+        handOpacity = 1
 
-        try? await Task.sleep(for: .seconds(Self.delayBeforeMissBanner))
+        let bannerDelayAfterFade = max(0, Self.delayBeforeMissBanner - Self.handFadeOutDuration)
+        try? await Task.sleep(for: .seconds(bannerDelayAfterFade))
 
         withAnimation(.easeOut(duration: 0.2)) {
             showGrenadeMissBanner = true
         }
 
         showDemoFinished = true
+    }
+
+    /// Hand pose at row 12 / col 2 with scroll pinned to the bottom (first frame of the trailer).
+    private static func grenadeHandStartPosition(viewportSize: CGSize, pullDown: CGFloat) -> CGPoint {
+        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let handAtStartTile = handCentreWithTopOfFrameAtTileLowerThird(
+            row: handStartTile.row,
+            col: handStartTile.col,
+            viewportSize: viewportSize,
+            pullDown: pullDown,
+            scrollBottomPinned: true
+        )
+        return CGPoint(
+            x: handAtStartTile.x + handStartHorizontalOffsetTiles * tw,
+            y: handAtStartTile.y + initialHandExtraOffsetY
+        )
     }
 
     /// Light tactile “tap” when orange selection outlines appear (watch speaker silent).
@@ -300,7 +340,8 @@ struct Demo_Grenade: View {
 
     private func makeTileMap(
         showGrenadeMissOnTarget: Bool,
-        outlineGrenadeTarget: Bool
+        outlineGrenadeTarget: Bool,
+        grenadeImpactPulseToken: UInt32
     ) -> [GridPosition: TileRenderModel] {
         let marks: [GridPosition: Unit] = [
             Self.demoHQ: .headquarters,
@@ -314,20 +355,30 @@ struct Demo_Grenade: View {
         for row in Zones.allRows {
             for col in Zones.allColumns {
                 let pos = GridPosition(row, col)
+                let missileOnGrenadeTarget = showGrenadeMissOnTarget
                 let bg: TileBackground = {
+                    if missileOnGrenadeTarget && pos == Self.demoMissile2 {
+                        return Zones.isWater(pos.row) ? .water : .grass
+                    }
+                    if missileOnGrenadeTarget && pos == Self.grenadeHandTarget {
+                        return .unit(.missile)
+                    }
                     if let u = marks[pos] { return .unit(u) }
                     return Zones.isWater(pos.row) ? .water : .grass
                 }()
 
                 let dropOverlay: ExplosionKind? = {
-                    if pos == GridPosition(0, 1) { return .hit }
-                    if pos == GridPosition(1, 1) || pos == GridPosition(2, 1) { return .miss }
-                    if showGrenadeMissOnTarget && pos == Self.grenadeHandTarget { return .miss }
+                    if showGrenadeMissOnTarget && pos == Self.grenadeHandTarget { return .hit }
                     return nil
                 }()
 
+                let pulseToken: UInt32? = {
+                    guard showGrenadeMissOnTarget, pos == Self.grenadeHandTarget else { return nil }
+                    return grenadeImpactPulseToken
+                }()
+
                 let orangeTargetOutline =
-                    outlineGrenadeTarget && pos == Self.grenadeHandTarget && dropOverlay == nil
+                    outlineGrenadeTarget && pos == Self.grenadeHandTarget
 
                 tiles[pos] = TileRenderModel(
                     position: pos,
@@ -338,7 +389,7 @@ struct Demo_Grenade: View {
                     northStrikeOverlay: nil,
                     dropOverlay: dropOverlay,
                     dropOverlayScale: 1,
-                    missileHitPulseToken: nil,
+                    missileHitPulseToken: pulseToken,
                     waterWreck: nil,
                     wreckRotationDegrees: 0,
                     border: .plain,

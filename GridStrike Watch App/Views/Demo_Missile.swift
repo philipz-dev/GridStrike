@@ -2,7 +2,7 @@
 //  Demo_Missile.swift
 //  GridStrike Watch App
 //
-//  Scripted trailer: hand → home missile → enemy anchor tap; scroll pins row 6; `missiletransparent`
+//  Scripted trailer: hand visible at home immediately, 0.5s hold, then hand → home missile → enemy anchor tap; scroll pins row 6; `missiletransparent`
 //  flies up the anchor column while the board scrolls to top; salvo + sprite removal when the centre crosses
 //  row 2 mid plus **half a sprite height** south; opacity hides once the bottom clears half that height below the top.
 //
@@ -45,6 +45,9 @@ struct Demo_Missile: View {
     /// Hand flies to `demoMissile2` (matches prior missile demo pacing).
     private static let handFlyToHomeMissileDuration: TimeInterval = 1.75
 
+    /// Hold opening frame (board + hand at home, bottom pinned) before the first hand motion.
+    private static let freezeBeforeHandMotion: TimeInterval = 0.5
+
     // MARK: - Demo layout (row, col)
 
     private static let demoHQ = GridPosition(10, 3)
@@ -59,6 +62,12 @@ struct Demo_Missile: View {
     private static let handStartTile = GridPosition(12, 2)
     private static let handStartHorizontalOffsetTiles: CGFloat = 1.5
 
+    /// Salvo cell that shows `.hit` (north-west of `enemyMissileAnchor`); drives the same pulse as `Demo_Grenade`.
+    private static let missileSalvoHitTile = GridPosition(
+        Self.enemyMissileAnchor.row - 1,
+        Self.enemyMissileAnchor.col - 1
+    )
+
     @State private var didStart = false
     /// Hides the scroll content until the initial bottom pin scroll runs (avoids a top→bottom flash).
     @State private var isBoardVisible = false
@@ -69,6 +78,7 @@ struct Demo_Missile: View {
     @State private var highlightPlayerMissile = false
     @State private var highlightEnemyAnchor = false
     @State private var missileImpactOverlays: [GridPosition: ExplosionKind] = [:]
+    @State private var missileImpactPulseToken: UInt32 = 0
     @State private var showHitBanner = false
     /// When non-nil, timeline-driven `missiletransparent` overlay (cleared when impacts flash at row 2).
     @State private var missileFlightSpec: MissileFlightSpec?
@@ -82,7 +92,8 @@ struct Demo_Missile: View {
             let tiles = makeTileMap(
                 highlightPlayerMissile: highlightPlayerMissile,
                 highlightEnemyAnchor: highlightEnemyAnchor,
-                missileImpactOverlays: missileImpactOverlays
+                missileImpactOverlays: missileImpactOverlays,
+                missileImpactPulseToken: missileImpactPulseToken
             )
 
             ZStack(alignment: .topLeading) {
@@ -138,6 +149,11 @@ struct Demo_Missile: View {
                             withTransaction(t) {
                                 proxy.scrollTo(bottomId, anchor: .bottom)
                             }
+                            handPosition = Self.missileHandStartPosition(
+                                viewportSize: geo.size,
+                                pullDown: pullDown
+                            )
+                            showHand = true
                             DispatchQueue.main.async {
                                 isBoardVisible = true
                                 Task {
@@ -154,7 +170,7 @@ struct Demo_Missile: View {
 
                 VStack(spacing: 0) {
                     if showHitBanner {
-                        Text("Hostile missile hit!")
+                        Text("Bomber eliminated!")
                             .font(.caption.weight(.semibold))
                             .multilineTextAlignment(.center)
                             .lineLimit(3)
@@ -222,24 +238,16 @@ struct Demo_Missile: View {
         pullDown: CGFloat
     ) async {
         showDemoFinished = false
-        try? await Task.sleep(for: .seconds(1))
+
+        highlightPlayerMissile = false
+        highlightEnemyAnchor = false
 
         missileImpactOverlays = [:]
+        missileImpactPulseToken = 0
         showHitBanner = false
         missileFlightSpec = nil
 
         let tw = BoardGridMetrics.tileWidth(forContainerWidth: size.width)
-        let handAtStartTile = Self.handCentreWithTopOfFrameAtTileLowerThird(
-            row: Self.handStartTile.row,
-            col: Self.handStartTile.col,
-            viewportSize: size,
-            pullDown: pullDown,
-            scrollBottomPinned: true
-        )
-        let startPos = CGPoint(
-            x: handAtStartTile.x + Self.handStartHorizontalOffsetTiles * tw,
-            y: handAtStartTile.y + Self.initialHandExtraOffsetY
-        )
 
         let handOnMissile = Self.handCentreWithTopOfFrameAtTileLowerThird(
             row: Self.demoMissile2.row,
@@ -253,8 +261,10 @@ struct Demo_Missile: View {
             y: handOnMissile.y + Self.initialHandExtraOffsetY
         )
 
+        handPosition = Self.missileHandStartPosition(viewportSize: size, pullDown: pullDown)
         showHand = true
-        handPosition = startPos
+
+        try? await Task.sleep(for: .seconds(Self.freezeBeforeHandMotion))
 
         withAnimation(.easeInOut(duration: Self.handFlyToHomeMissileDuration)) {
             handPosition = homeTapPos
@@ -283,7 +293,6 @@ struct Demo_Missile: View {
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
 
-        highlightPlayerMissile = false
         highlightEnemyAnchor = true
         Self.playOutlineTapHaptic()
 
@@ -299,9 +308,8 @@ struct Demo_Missile: View {
         try? await Task.sleep(for: .seconds(Self.scrollToMidBoardBeforeMissileDuration))
 
         let salvo = Rules.missilePositions(anchor: Self.enemyMissileAnchor, attacker: .player)
-        let nw = GridPosition(Self.enemyMissileAnchor.row - 1, Self.enemyMissileAnchor.col - 1)
+        let hitTile = Self.missileSalvoHitTile
         guard !salvo.isEmpty else {
-            highlightEnemyAnchor = false
             showDemoFinished = true
             return
         }
@@ -366,11 +374,14 @@ struct Demo_Missile: View {
 
         var overlays: [GridPosition: ExplosionKind] = [:]
         for pos in salvo {
-            overlays[pos] = (pos == nw) ? .hit : .miss
+            overlays[pos] = (pos == hitTile) ? .hit : .miss
         }
 
         missileFlightSpec = nil
-        withAnimation(.easeOut(duration: 0.2)) {
+        missileImpactPulseToken &+= 1
+        var salvoImpactTransaction = Transaction()
+        salvoImpactTransaction.disablesAnimations = true
+        withTransaction(salvoImpactTransaction) {
             missileImpactOverlays = overlays
         }
 
@@ -379,7 +390,6 @@ struct Demo_Missile: View {
         if remaining > 0 {
             try? await Task.sleep(for: .seconds(remaining))
         }
-        highlightEnemyAnchor = false
         withAnimation(.easeOut(duration: 0.2)) {
             showHitBanner = true
         }
@@ -389,6 +399,22 @@ struct Demo_Missile: View {
 
     private static func playOutlineTapHaptic() {
         WKInterfaceDevice.current().play(.click)
+    }
+
+    /// Hand pose at `handStartTile` with scroll pinned to the bottom (matches `Demo_Grenade` opening frame).
+    private static func missileHandStartPosition(viewportSize: CGSize, pullDown: CGFloat) -> CGPoint {
+        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let handAtStartTile = handCentreWithTopOfFrameAtTileLowerThird(
+            row: handStartTile.row,
+            col: handStartTile.col,
+            viewportSize: viewportSize,
+            pullDown: pullDown,
+            scrollBottomPinned: true
+        )
+        return CGPoint(
+            x: handAtStartTile.x + handStartHorizontalOffsetTiles * tw,
+            y: handAtStartTile.y + initialHandExtraOffsetY
+        )
     }
 
     private static func clampedScrollOffsetPinningBottomOfRow(
@@ -425,7 +451,8 @@ struct Demo_Missile: View {
     private func makeTileMap(
         highlightPlayerMissile: Bool,
         highlightEnemyAnchor: Bool,
-        missileImpactOverlays: [GridPosition: ExplosionKind]
+        missileImpactOverlays: [GridPosition: ExplosionKind],
+        missileImpactPulseToken: UInt32
     ) -> [GridPosition: TileRenderModel] {
         let marks: [GridPosition: Unit] = [
             Self.demoHQ: .headquarters,
@@ -439,7 +466,14 @@ struct Demo_Missile: View {
         for row in Zones.allRows {
             for col in Zones.allColumns {
                 let pos = GridPosition(row, col)
+                let bomberUnderSalvoHit = missileImpactOverlays[Self.missileSalvoHitTile] == .hit
                 let bg: TileBackground = {
+                    if bomberUnderSalvoHit && pos == Self.demoBomber {
+                        return Zones.isWater(pos.row) ? .water : .grass
+                    }
+                    if bomberUnderSalvoHit && pos == Self.missileSalvoHitTile {
+                        return .unit(.bomber)
+                    }
                     if let u = marks[pos] { return .unit(u) }
                     return Zones.isWater(pos.row) ? .water : .grass
                 }()
@@ -448,16 +482,26 @@ struct Demo_Missile: View {
                     (highlightPlayerMissile && pos == Self.demoMissile2)
                     || (highlightEnemyAnchor && pos == Self.enemyMissileAnchor)
 
+                let bomberRotationDegrees: Double = {
+                    guard case .unit(let u) = bg, u == .bomber else { return 0 }
+                    return 180
+                }()
+
+                let pulseToken: UInt32? = {
+                    guard missileImpactOverlays[pos] == .hit else { return nil }
+                    return missileImpactPulseToken
+                }()
+
                 tiles[pos] = TileRenderModel(
                     position: pos,
                     background: bg,
-                    bomberRotationDegrees: 0,
+                    bomberRotationDegrees: bomberRotationDegrees,
                     dim: .none,
                     offCoastguardFocusRow: false,
                     northStrikeOverlay: nil,
                     dropOverlay: missileImpactOverlays[pos],
                     dropOverlayScale: 1,
-                    missileHitPulseToken: nil,
+                    missileHitPulseToken: pulseToken,
                     waterWreck: nil,
                     wreckRotationDegrees: 0,
                     border: .plain,

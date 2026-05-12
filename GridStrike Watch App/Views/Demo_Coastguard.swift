@@ -280,6 +280,9 @@ struct Demo_Coastguard: View {
         showDemoFinished = false
         try? await Task.sleep(for: .seconds(1))
 
+        highlightPlayerMissile = false
+        highlightEnemyAnchor = false
+
         showHitBanner = false
         missileFlightSpec = nil
         showInterceptExplosionOverlay = false
@@ -343,7 +346,6 @@ struct Demo_Coastguard: View {
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
 
-        highlightPlayerMissile = false
         highlightEnemyAnchor = true
         Self.playOutlineTapHaptic()
 
@@ -436,7 +438,6 @@ struct Demo_Coastguard: View {
         if remaining > 0 {
             try? await Task.sleep(for: .seconds(remaining))
         }
-        highlightEnemyAnchor = false
         try? await Task.sleep(for: .seconds(Self.delayBeforeInterceptBanner))
         withAnimation(.easeOut(duration: 0.2)) {
             showHitBanner = true

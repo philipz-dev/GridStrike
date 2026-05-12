@@ -3,7 +3,7 @@
 //  GridStrike Watch App
 //
 //  Reference card with a board preview. Layout:
-//   • Floating close X in the top-left.
+//   • Floating close control (`TopLeadingTacticalCloseBar`) — same placement as weapon demos.
 //   • Two-column-style sections separated by thin red dividers.
 //   • Board preview uses a slightly inset tile size so the orange zone
 //     outlines never clip past the right edge of the watch.
@@ -16,28 +16,14 @@
 import SwiftUI
 
 struct ManualView: View {
-    /// Invoked when the player taps the close X. The caller is responsible
+    /// Invoked when the player taps the close control. The caller is responsible
     /// for both hiding the manual *and* advancing the game (the manual is
-    /// never re-shown automatically; the X behaves as a "start the game now"
+    /// never re-shown automatically; the close control behaves as a "start the game now"
     /// button that happens to also close this screen).
     let onClose: () -> Void
 
     @AppStorage("showInGameTips") var showInGameTips = true
 
-    /// Diameter of the floating close-X. Sized for an easy fingertip target
-    /// on the 41/45/49 mm watches; the visual circle and the hit region both
-    /// scale with this value, and the top spacer that reserves headroom for
-    /// the X tracks it automatically.
-    private static let closeButtonSize: CGFloat = 40
-    /// Vertical nudge applied to the close button. Pulls the X up into the
-    /// safe-area top inset so it sits high on the screen as a proper corner
-    /// control instead of floating below the watch's status chrome.
-    private static let closeButtonTopOffset: CGFloat = -6
-    /// Tiny inset from the leading edge so the button clears the watch's
-    /// curved corner — without this, the left side of the circle gets
-    /// cropped by the bezel and taps near that edge are swallowed by the
-    /// system swipe-back gesture instead of hitting the button.
-    private static let closeButtonLeadingInset: CGFloat = 2
     private static let outerHorizontalPadding: CGFloat = 10
     private static let zoneCornerRadius: CGFloat = 10
     /// Orange zone outline width. Picked thick enough to read clearly against
@@ -57,85 +43,73 @@ struct ManualView: View {
 
     var body: some View {
         GeometryReader { geo in
-            // Reserve the manual's outer horizontal gutter before computing
-            // tile width so the resulting grid (and its red outline stroke)
-            // sits comfortably inside the watch's safe area instead of
-            // bleeding off the right edge.
+            // Reserve the manual's outer horizontal gutter before computing tile width.
             let usableWidth = max(0, geo.size.width - Self.outerHorizontalPadding * 2)
             let tileWidth = BoardGridMetrics.tileWidth(forContainerWidth: usableWidth)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Spacer().frame(height: Self.closeButtonSize + 4)
+            ZStack(alignment: .topLeading) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Spacer().frame(
+                            height: TopLeadingTacticalCloseBar.contentTopInsetClearance(
+                                screenHeight: geo.size.height,
+                                upwardOffset: TopLeadingTacticalCloseBar.hubOffsetUp
+                            )
+                        )
 
-                    sectionTitle("Goal")
-                    Text("Destroy the enemy headquarters.")
-                        .font(.footnote)
-
-                    sectionTitle("The Board")
-                    boardPreview(tileWidth: tileWidth)
-                        .frame(maxWidth: .infinity, alignment: .center)
-
-                    sectionTitle("Setup")
-                    bulletList([
-                        "Place HQ, Missiles & Bomber in Home Zone. Space them out!",
-                        "Place Coastguard on Coast Zone tile."
-                    ])
-
-                    sectionTitle("Weapons")
-                    bulletList([
-                        "2 Missiles: 5-tile X-strike",
-                        "1 Bomber: 3-tile vertical strike",
-                        "Coastguard: Intercepts air strikes",
-                        "Unlimited Grenades"
-                    ])
-
-                    sectionTitle("Pro Tips")
-                    bulletList([
-                        "Coastguards only fear Grenades.",
-                        "Avoid edges with Missiles.",
-                        "Aim low with Bombers.",
-                        "Don't hit destroyed tiles."
-                    ])
-
-                    HStack(spacing: 8) {
-                        Text("In-game Tips")
+                        sectionTitle("Goal")
+                        Text("Destroy the enemy headquarters.")
                             .font(.footnote)
-                        Spacer(minLength: 0)
-                        Toggle("", isOn: $showInGameTips)
-                            .labelsHidden()
+
+                        sectionTitle("The Board")
+                        boardPreview(tileWidth: tileWidth)
+                            .frame(maxWidth: .infinity, alignment: .center)
+
+                        sectionTitle("Setup")
+                        bulletList([
+                            "Place HQ, Missiles & Bomber in Home Zone. Space them out!",
+                            "Place Coastguard on Coast Zone tile."
+                        ])
+
+                        sectionTitle("Weapons")
+                        bulletList([
+                            "2 Missiles: 5-tile X-strike",
+                            "1 Bomber: 3-tile vertical strike",
+                            "Coastguard: Intercepts air strikes",
+                            "Unlimited Grenades"
+                        ])
+
+                        sectionTitle("Pro Tips")
+                        bulletList([
+                            "Coastguards only fear Grenades.",
+                            "Avoid edges with Missiles.",
+                            "Aim low with Bombers.",
+                            "Don't hit destroyed tiles."
+                        ])
+
+                        HStack(spacing: 8) {
+                            Text("In-game Tips")
+                                .font(.footnote)
+                            Spacer(minLength: 0)
+                            Toggle("", isOn: $showInGameTips)
+                                .labelsHidden()
+                        }
+                        .padding(.top, 4)
                     }
-                    .padding(.top, 4)
+                    .padding(.horizontal, Self.outerHorizontalPadding)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, Self.outerHorizontalPadding)
-                .padding(.bottom, 12)
+
+                TopLeadingTacticalCloseBar(
+                    isVisible: true,
+                    accessibilityLabel: "Close manual and start game",
+                    screenHeight: geo.size.height,
+                    upwardOffset: TopLeadingTacticalCloseBar.hubOffsetUp,
+                    action: onClose
+                )
             }
         }
         .background(Color.black.ignoresSafeArea())
-        .overlay(alignment: .topLeading) {
-            // Floating close button — pinned to the top-left of the screen
-            // and nudged up into the safe-area top inset so it reads as a
-            // proper corner control rather than floating inside the manual.
-            // Hit-testing uses a square `contentShape` covering the whole
-            // 40×40 frame (instead of just the visible circle) so finger
-            // taps at the curved corner still register, and the leading
-            // inset keeps the circle clear of the bezel where watchOS would
-            // otherwise hijack the touch for its swipe-back gesture.
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: Self.closeButtonSize, height: Self.closeButtonSize)
-                    .background(Color.black.opacity(0.7))
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 1.25))
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.leading, Self.closeButtonLeadingInset)
-            .padding(.top, Self.closeButtonTopOffset)
-            .accessibilityLabel("Close manual and start game")
-        }
     }
 
     // MARK: - Sections

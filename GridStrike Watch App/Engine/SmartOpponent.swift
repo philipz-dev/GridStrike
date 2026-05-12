@@ -62,7 +62,8 @@ struct SmartOpponent: OpponentPolicy {
             result = pickMissileTarget(state: state, belief: belief)
         case .bombingDrops, .missileFlight:
             result = nil       // wait for the scheduled advance-bomb-drop tick
-        case .missileInterceptFlight, .bomberInterceptFlight:
+        case .missileInterceptFlight, .bomberInterceptFlight, .opponentMissileInterceptFlight,
+             .opponentBomberInterceptFlight:
             result = nil
         }
 

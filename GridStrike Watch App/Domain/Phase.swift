@@ -65,12 +65,18 @@ enum PlayState: Equatable {
     /// `attacker` identifies whose weapon got shot down so the banner can pick the
     /// correct phrasing (your bomber vs enemy bomber).
     case shotDown(Weapon, attacker: Side)
-    /// Scripted coastguard intercept (player missile only) — matches `Demo_Coastguard`
+    /// Scripted coastguard intercept (player missile vs enemy CG) — matches `Demo_Coastguard`
     /// visuals; commit happens on `Action.finalizePlayerMissileIntercept`.
     case missileInterceptFlight(source: GridPosition, anchor: GridPosition)
     /// Same coastguard intercept trailer as the missile path, but flying `bomber_transparent`;
     /// commit on `Action.finalizePlayerBomberIntercept`.
     case bomberInterceptFlight(source: GridPosition, anchor: GridPosition)
+    /// Opponent missile vs player coastguard — mirrored scroll + southbound missile;
+    /// commit on `Action.finalizeOpponentMissileIntercept`.
+    case opponentMissileInterceptFlight(source: GridPosition, anchor: GridPosition)
+    /// Opponent bomber vs player coastguard — same mirrored trailer with `bomber_transparent`;
+    /// commit on `Action.finalizeOpponentBomberIntercept`.
+    case opponentBomberInterceptFlight(source: GridPosition, anchor: GridPosition)
     case choosingBombTarget(source: GridPosition)
     case bombingDrops(source: GridPosition, target: GridPosition, dropsApplied: Int)
     /// Missile in flight — same scroll + sprite path as bomber (mirrored for the opponent);
@@ -115,7 +121,9 @@ extension Phase {
         case .play(.choosingBombTarget(let src)): return src
         case .play(.choosingMissileTarget(let src)): return src
         case .play(.missileInterceptFlight(let src, _)),
-             .play(.bomberInterceptFlight(let src, _)):
+             .play(.bomberInterceptFlight(let src, _)),
+             .play(.opponentMissileInterceptFlight(let src, _)),
+             .play(.opponentBomberInterceptFlight(let src, _)):
             return src
         default: return nil
         }

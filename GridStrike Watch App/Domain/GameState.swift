@@ -136,7 +136,7 @@ struct GameState: Equatable {
     /// Use `requestScroll(to:)` to mutate so the token always advances.
     var scrollRequest: ScrollRequest?
 
-    /// After `Action.finishPostGameMapReview`, `WelcomeView` skips the splash and opens the
+    /// After `Action.finishPostGameMapReview`, `StartView` skips the splash and opens the
     /// camo tactical menu (START ASSAULT / FIELD GUIDE) immediately. Cleared once the UI consumes it.
     var welcomePresentStartMenu: Bool
 
@@ -146,6 +146,10 @@ struct GameState: Equatable {
     /// Defender cells that took a **unit hit** on the latest missile salvo — drives the
     /// pulse token on `TileRenderModel` until `completeTurn` clears this set.
     var missileSalvoPulseHitCells: Set<GridPosition>
+
+    /// Units removed by the latest missile salvo on pulse-hit cells, so tiles can still
+    /// draw that art under the hit explosion during the scale pulse (`BoardSnapshot`).
+    var missileSalvoGhostUnits: [GridPosition: Unit]
 
     static func newGame() -> GameState {
         GameState(
@@ -167,7 +171,8 @@ struct GameState: Equatable {
             scrollRequest: nil,
             welcomePresentStartMenu: false,
             missileImpactPulseGeneration: 0,
-            missileSalvoPulseHitCells: []
+            missileSalvoPulseHitCells: [],
+            missileSalvoGhostUnits: [:]
         )
     }
 
@@ -216,6 +221,10 @@ extension GameState {
         if isInPostAttackCooldown { return true }
         if case .play(.bombingDrops) = phase { return true }
         if case .play(.missileFlight) = phase { return true }
+        if case .play(.missileInterceptFlight) = phase { return true }
+        if case .play(.bomberInterceptFlight) = phase { return true }
+        if case .play(.opponentMissileInterceptFlight) = phase { return true }
+        if case .play(.opponentBomberInterceptFlight) = phase { return true }
         return false
     }
 

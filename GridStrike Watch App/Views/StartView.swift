@@ -1,17 +1,17 @@
 //
-//  WelcomeView.swift
+//  StartView.swift
 //  GridStrike Watch App
 //
-//  (1) Splash: `SplashBackground` + two-line “Welcome to” / “GridStrike!” — tap anywhere to continue.
-//  (2) Tactical menu: full-screen camo + two-line “START / ASSAULT!” and “FIELD / GUIDE” beside icons.
-//  Guide opens `ManualWeaponsMenuView` inline; weapon demos return to the camouflage hub.
+//  Entry menu when `UIMode` is `.welcome`: (1) splash — `SplashBackground` + “Welcome to” /
+//  “GridStrike!” — tap anywhere to continue. (2) Tactical hub — camo + “START / ASSAULT!”
+//  and “FIELD / GUIDE”; guide opens `ManualWeaponsMenuView`; demos return to the hub.
 //
 
 import SwiftUI
 
-struct WelcomeView: View {
+struct StartView: View {
     /// Pushes the welcome title toward the chin: twice the old SF Symbol block (44 + 12) + 20.
-    private static let splashWelcomeExtraTopInset: CGFloat = (44 + 12) * 2 + 50
+    private static let splashTitleExtraTopInset: CGFloat = (44 + 12) * 2 + 50
 
     @Environment(GameStore.self) private var store
     /// After step (1); when true, shows the camo tactical menu (step 2).
@@ -97,7 +97,7 @@ struct WelcomeView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 12)
-                .padding(.top, Self.splashWelcomeExtraTopInset)
+                .padding(.top, Self.splashTitleExtraTopInset)
                 Spacer()
                     .frame(height: 24)
             }

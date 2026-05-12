@@ -28,7 +28,8 @@ struct RandomOpponent: OpponentPolicy {
             return pickMissileTarget(state: state)
         case .bombingDrops, .missileFlight:
             return nil      // wait for the scheduled advance-bomb-drop tick
-        case .missileInterceptFlight, .bomberInterceptFlight:
+        case .missileInterceptFlight, .bomberInterceptFlight, .opponentMissileInterceptFlight,
+             .opponentBomberInterceptFlight:
             return nil
         }
     }

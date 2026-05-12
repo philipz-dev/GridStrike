@@ -10,19 +10,42 @@
 //  can misalign taps vs tiles on bottom rows. UIKit scroll/view bridges are not used here
 //  because UIView and UIScrollView are unavailable on watchOS.
 //
-//  Player bomber strikes: after confirm, `LivePlayerBomberFlight` scrolls + overlays
-//  `bomber_transparent` and sends `advanceBombDrop` on demo-aligned timings.
+//  Player bomber strikes: `LivePlayerBomberFlight`; opponent bomber: `LiveOpponentBomberFlight`
+//  (mirrored scroll + southbound plane). Both send `advanceBombDrop` on the same timing model.
 //
 //  Player missile (not intercepted): `LivePlayerMissileFlight` / `LiveOpponentMissileFlight`
 //  mirror that motion with `missiletransparent` + simultaneous X-pattern on `commitMissileFlightStrike`.
 //
-//  Coastguard intercept (player missile / bomber): `LiveMissileInterceptFlight` mirrors
-//  `Demo_Coastguard`’s tail — scroll to row 6, flying weapon sprite, explosion + coastguard,
-//  banner — then `finalizePlayerMissileIntercept` / `finalizePlayerBomberIntercept`
-//  commits shot-down state (`missileInWater` / `planeInWater`, launcher removal).
+//  Coastguard intercept: `LiveMissileInterceptFlight` mirrors `Demo_Coastguard` for a
+//  player weapon vs enemy CG (`finalizePlayerMissileIntercept` / `finalizePlayerBomberIntercept`).
+//  `LiveMissileInterceptFlight.runMirrored` does the same beats when the player’s coastguard
+//  downs an AI missile (`finalizeOpponentMissileIntercept`) or bomber (`finalizeOpponentBomberIntercept`).
 //
 
 import SwiftUI
+
+/// Stable `Image` + shared resizable / interpolation stack; `TimelineView` only supplies changing layout each tick.
+private struct BoardTimelineFlightSprite: View {
+    let image: Image
+    let size: CGFloat
+    let rotationDegrees: Double
+    let centerX: CGFloat
+    let centerY: CGFloat
+    let opacity: CGFloat
+
+    var body: some View {
+        image
+            .resizable()
+            .interpolation(.high)
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .rotationEffect(.degrees(rotationDegrees))
+            .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+            .position(x: centerX, y: centerY)
+            .opacity(opacity)
+            .allowsHitTesting(false)
+    }
+}
 
 struct BoardView: View {
     let snapshot: BoardSnapshot
@@ -30,6 +53,7 @@ struct BoardView: View {
     @State private var didInitialScroll = false
     @State private var liveBomberFlight: LiveBomberFlightSpec?
     @State private var playerBomberFlightToken: UUID?
+    @State private var opponentBomberFlightToken: UUID?
 
     @State private var liveMissileFlight: LiveBomberFlightSpec?
     @State private var missileFlightTaskToken: UUID?
@@ -45,6 +69,8 @@ struct BoardView: View {
     @State private var showInterceptCoastguard = false
     @State private var interceptCoastguardOpacity: CGFloat = 0
     @State private var showInterceptBanner = false
+    /// Intercept scroll + overlay rows mirror `LiveOpponentMissileFlight` when the player’s coastguard downs an AI missile or bomber.
+    @State private var interceptUsesMirroredLayout = false
 
     private static let rows = BoardGridMetrics.rowCount
 
@@ -67,6 +93,13 @@ struct BoardView: View {
         return "\(src.row),\(src.col)-\(tgt.row),\(tgt.col)"
     }
 
+    /// Stable for the opponent bomb run (same shape as the player flight runner).
+    private var opponentBomberRunIdentity: String? {
+        guard store.state.currentTurn == .opponent,
+              case .play(.bombingDrops(let src, let tgt, _)) = store.state.phase else { return nil }
+        return "o-\(src.row),\(src.col)-\(tgt.row),\(tgt.col)"
+    }
+
     /// Stable for the coastguard intercept cutscene (source + strike anchor).
     private var coastguardInterceptRunIdentity: String? {
         switch store.state.phase {
@@ -74,6 +107,10 @@ struct BoardView: View {
             return "m:\(src.row),\(src.col)_\(anchor.row),\(anchor.col)"
         case .play(.bomberInterceptFlight(let src, let anchor)):
             return "b:\(src.row),\(src.col)_\(anchor.row),\(anchor.col)"
+        case .play(.opponentMissileInterceptFlight(let src, let anchor)):
+            return "om:\(src.row),\(src.col)_\(anchor.row),\(anchor.col)"
+        case .play(.opponentBomberInterceptFlight(let src, let anchor)):
+            return "ob:\(src.row),\(src.col)_\(anchor.row),\(anchor.col)"
         default:
             return nil
         }
@@ -81,6 +118,12 @@ struct BoardView: View {
 
     /// Matches `InstructionBanner` / `BannerKind` phrasing for the cutscene bar.
     private var interceptBannerTitle: String {
+        if interceptUsesMirroredLayout {
+            if coastguardInterceptShowsBomberSprite {
+                return BannerKind.shotDown(.bomber, attacker: .opponent).localized
+            }
+            return BannerKind.shotDown(.missile, attacker: .opponent).localized
+        }
         if coastguardInterceptShowsBomberSprite {
             return "Bomber shot down by enemy coastguard!"
         }
@@ -102,12 +145,24 @@ struct BoardView: View {
             let interceptFlyingSprite = tileSize * LiveMissileInterceptFlight.missileFlightSpriteTileFactor
             let contentH = CGFloat(Zones.rowCount) * tileSize
             let maxScroll = max(0, contentH - geo.size.height)
-            let scrollTopPinnedRow6 = LiveMissileInterceptFlight.clampedScrollOffsetPinningBottomOfRow(
-                rowIndex: 6,
-                tileWidth: tileSize,
-                viewportHeight: geo.size.height,
-                maxScroll: maxScroll
-            )
+            let interceptScrollTopContentY = interceptUsesMirroredLayout
+                ? LivePlayerBomberFlight.clampedScrollOffsetPinningTopOfRow(
+                    rowIndex: 6,
+                    tileWidth: tileSize,
+                    maxScroll: maxScroll
+                )
+                : LiveMissileInterceptFlight.clampedScrollOffsetPinningBottomOfRow(
+                    rowIndex: 6,
+                    tileWidth: tileSize,
+                    viewportHeight: geo.size.height,
+                    maxScroll: maxScroll
+                )
+            let interceptExplosionRow = interceptUsesMirroredLayout
+                ? Zones.shotDownRow(attacker: .opponent)
+                : LiveMissileInterceptFlight.missileDismissRow
+            let interceptCoastguardRow = interceptUsesMirroredLayout
+                ? Zones.coastguardRow(of: .player)
+                : Zones.coastguardRow(of: .opponent)
             let interceptCol = interceptAnchorColumn ?? 0
 
             ScrollViewReader { proxy in
@@ -194,11 +249,11 @@ struct BoardView: View {
                     if showInterceptCoastguard {
                         let hp = BoardGridMetrics.horizontalPadding
                         let cgCentre = LiveMissileInterceptFlight.tileCentreScreen(
-                            row: 5,
+                            row: interceptCoastguardRow,
                             col: interceptCol,
                             tw: tileSize,
                             hp: hp,
-                            scrollTopContentY: scrollTopPinnedRow6
+                            scrollTopContentY: interceptScrollTopContentY
                         )
                         Assets.coastguard
                             .resizable()
@@ -213,11 +268,11 @@ struct BoardView: View {
                     if showInterceptExplosion {
                         let hp = BoardGridMetrics.horizontalPadding
                         let boomCentre = LiveMissileInterceptFlight.tileCentreScreen(
-                            row: LiveMissileInterceptFlight.missileDismissRow,
+                            row: interceptExplosionRow,
                             col: interceptCol,
                             tw: tileSize,
                             hp: hp,
-                            scrollTopContentY: scrollTopPinnedRow6
+                            scrollTopContentY: interceptScrollTopContentY
                         )
                         Assets.explosionImage(for: .hit)
                             .resizable()
@@ -235,31 +290,24 @@ struct BoardView: View {
                             let elapsed = timeline.date.timeIntervalSince(flight.startTime)
                             let p = min(1.0, elapsed / flight.duration)
                             let y = flight.startY + (flight.endY - flight.startY) * CGFloat(p)
+                            let topEdge = y - flight.halfHeight
+                            let bottomEdge = y + flight.halfHeight
                             let bottomOfMissile = y + flight.halfHeight
-                            let showMissile = bottomOfMissile > flight.halfHeight
-
-                            Group {
-                                if interceptFlightUsesBomberArt {
-                                    Image("bomber_transparent")
-                                        .resizable()
-                                        .interpolation(.high)
-                                        .scaledToFit()
-                                        .frame(width: interceptFlyingSprite, height: interceptFlyingSprite)
-                                        .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
-                                        .position(x: flight.cx, y: y)
-                                        .opacity(showMissile ? 1 : 0)
-                                } else {
-                                    Image("missiletransparent")
-                                        .resizable()
-                                        .interpolation(.high)
-                                        .scaledToFit()
-                                        .frame(width: interceptFlyingSprite, height: interceptFlyingSprite)
-                                        .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
-                                        .position(x: flight.cx, y: y)
-                                        .opacity(showMissile ? 1 : 0)
+                            let showMissile: Bool = {
+                                if flight.missileFliesDownward {
+                                    return bottomEdge > 0 && topEdge < geo.size.height
                                 }
-                            }
-                            .allowsHitTesting(false)
+                                return bottomOfMissile > flight.halfHeight
+                            }()
+
+                            BoardTimelineFlightSprite(
+                                image: interceptFlightUsesBomberArt ? Assets.bomberTransparent : Assets.missileTransparent,
+                                size: interceptFlyingSprite,
+                                rotationDegrees: flight.spriteRotationDegrees,
+                                centerX: flight.cx,
+                                centerY: y,
+                                opacity: showMissile ? 1 : 0
+                            )
                         }
                         .frame(width: geo.size.width, height: geo.size.height)
                         .allowsHitTesting(false)
@@ -278,16 +326,14 @@ struct BoardView: View {
                                 ? (bottomEdge > 0 && topEdge < geo.size.height)
                                 : (bottomEdge > 0)
 
-                            Image("missiletransparent")
-                                .resizable()
-                                .interpolation(.high)
-                                .scaledToFit()
-                                .frame(width: missileSprite, height: missileSprite)
-                                .rotationEffect(.degrees(flight.spriteRotationDegrees))
-                                .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
-                                .position(x: flight.cx, y: y)
-                                .opacity(showMissile ? 1 : 0)
-                                .allowsHitTesting(false)
+                            BoardTimelineFlightSprite(
+                                image: Assets.missileTransparent,
+                                size: missileSprite,
+                                rotationDegrees: flight.spriteRotationDegrees,
+                                centerX: flight.cx,
+                                centerY: y,
+                                opacity: showMissile ? 1 : 0
+                            )
                         }
                         .frame(width: geo.size.width, height: geo.size.height)
                         .allowsHitTesting(false)
@@ -300,18 +346,23 @@ struct BoardView: View {
                             let elapsed = timeline.date.timeIntervalSince(flight.startTime)
                             let p = min(1.0, elapsed / flight.duration)
                             let y = flight.startY + (flight.endY - flight.startY) * CGFloat(p)
-                            let bottomOfPlane = y + flight.halfHeight
-                            let showPlane = bottomOfPlane > 0
+                            let topEdge = y - flight.halfHeight
+                            let bottomEdge = y + flight.halfHeight
+                            let showPlane: Bool = {
+                                if flight.missileFliesDownward {
+                                    return bottomEdge > 0 && topEdge < geo.size.height
+                                }
+                                return y + flight.halfHeight > 0
+                            }()
 
-                            Image("bomber_transparent")
-                                .resizable()
-                                .interpolation(.high)
-                                .scaledToFit()
-                                .frame(width: bomberSprite, height: bomberSprite)
-                                .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
-                                .position(x: flight.cx, y: y)
-                                .opacity(showPlane ? 1 : 0)
-                                .allowsHitTesting(false)
+                            BoardTimelineFlightSprite(
+                                image: Assets.bomberTransparent,
+                                size: bomberSprite,
+                                rotationDegrees: flight.spriteRotationDegrees,
+                                centerX: flight.cx,
+                                centerY: y,
+                                opacity: showPlane ? 1 : 0
+                            )
                         }
                         .frame(width: geo.size.width, height: geo.size.height)
                         .allowsHitTesting(false)
@@ -356,17 +407,41 @@ struct BoardView: View {
                         updateFlightSpec: { liveBomberFlight = $0 }
                     )
                 }
+                .task(id: opponentBomberFlightToken) {
+                    guard opponentBomberFlightToken != nil else { return }
+                    defer {
+                        liveBomberFlight = nil
+                        opponentBomberFlightToken = nil
+                    }
+                    await LiveOpponentBomberFlight.run(
+                        store: store,
+                        proxy: proxy,
+                        viewportSize: geo.size,
+                        updateFlightSpec: { liveBomberFlight = $0 }
+                    )
+                }
                 .task(id: coastguardInterceptTaskToken) {
                     guard coastguardInterceptTaskToken != nil else { return }
                     let finalize: Action
                     let anchorColumn: Int
+                    let mirrored: Bool
                     switch store.state.phase {
                     case .play(.missileInterceptFlight(_, let anchor)):
                         finalize = .finalizePlayerMissileIntercept
                         anchorColumn = anchor.col
+                        mirrored = false
                     case .play(.bomberInterceptFlight(_, let anchor)):
                         finalize = .finalizePlayerBomberIntercept
                         anchorColumn = anchor.col
+                        mirrored = false
+                    case .play(.opponentMissileInterceptFlight(_, let anchor)):
+                        finalize = .finalizeOpponentMissileIntercept
+                        anchorColumn = anchor.col
+                        mirrored = true
+                    case .play(.opponentBomberInterceptFlight(_, let anchor)):
+                        finalize = .finalizeOpponentBomberIntercept
+                        anchorColumn = anchor.col
+                        mirrored = true
                     default:
                         coastguardInterceptTaskToken = nil
                         return
@@ -381,24 +456,44 @@ struct BoardView: View {
                         showInterceptBanner = false
                         interceptAnchorColumn = nil
                         coastguardInterceptShowsBomberSprite = false
+                        interceptUsesMirroredLayout = false
                         coastguardInterceptTaskToken = nil
                     }
-                    await LiveMissileInterceptFlight.run(
-                        proxy: proxy,
-                        viewportSize: geo.size,
-                        anchorColumn: anchorColumn,
-                        updateMissileSpec: { liveCoastguardInterceptFlight = $0 },
-                        updateInterceptExplosion: { show, scale, opacity in
-                            showInterceptExplosion = show
-                            interceptExplosionScale = scale
-                            interceptExplosionOpacity = opacity
-                        },
-                        updateInterceptCoastguard: { show, opacity in
-                            showInterceptCoastguard = show
-                            interceptCoastguardOpacity = opacity
-                        },
-                        updateInterceptBanner: { showInterceptBanner = $0 }
-                    )
+                    if mirrored {
+                        await LiveMissileInterceptFlight.runMirrored(
+                            proxy: proxy,
+                            viewportSize: geo.size,
+                            anchorColumn: anchorColumn,
+                            updateMissileSpec: { liveCoastguardInterceptFlight = $0 },
+                            updateInterceptExplosion: { show, scale, opacity in
+                                showInterceptExplosion = show
+                                interceptExplosionScale = scale
+                                interceptExplosionOpacity = opacity
+                            },
+                            updateInterceptCoastguard: { show, opacity in
+                                showInterceptCoastguard = show
+                                interceptCoastguardOpacity = opacity
+                            },
+                            updateInterceptBanner: { showInterceptBanner = $0 }
+                        )
+                    } else {
+                        await LiveMissileInterceptFlight.run(
+                            proxy: proxy,
+                            viewportSize: geo.size,
+                            anchorColumn: anchorColumn,
+                            updateMissileSpec: { liveCoastguardInterceptFlight = $0 },
+                            updateInterceptExplosion: { show, scale, opacity in
+                                showInterceptExplosion = show
+                                interceptExplosionScale = scale
+                                interceptExplosionOpacity = opacity
+                            },
+                            updateInterceptCoastguard: { show, opacity in
+                                showInterceptCoastguard = show
+                                interceptCoastguardOpacity = opacity
+                            },
+                            updateInterceptBanner: { showInterceptBanner = $0 }
+                        )
+                    }
                     store.send(finalize)
                 }
                 .onChange(of: missileRunIdentity) { old, new in
@@ -411,26 +506,41 @@ struct BoardView: View {
                         playerBomberFlightToken = UUID()
                     }
                 }
+                .onChange(of: opponentBomberRunIdentity) { old, new in
+                    if new != nil, old == nil {
+                        opponentBomberFlightToken = UUID()
+                    }
+                }
                 .onChange(of: coastguardInterceptRunIdentity) { old, new in
                     if new != nil, old == nil {
                         switch store.state.phase {
                         case .play(.missileInterceptFlight(_, let anchor)),
-                             .play(.bomberInterceptFlight(_, let anchor)):
+                             .play(.bomberInterceptFlight(_, let anchor)),
+                             .play(.opponentMissileInterceptFlight(_, let anchor)),
+                             .play(.opponentBomberInterceptFlight(_, let anchor)):
                             interceptAnchorColumn = anchor.col
                         default:
                             break
                         }
                         if case .play(.bomberInterceptFlight) = store.state.phase {
                             coastguardInterceptShowsBomberSprite = true
+                        } else if case .play(.opponentBomberInterceptFlight) = store.state.phase {
+                            coastguardInterceptShowsBomberSprite = true
                         } else {
                             coastguardInterceptShowsBomberSprite = false
                         }
+                        interceptUsesMirroredLayout = {
+                            if case .play(.opponentMissileInterceptFlight) = store.state.phase { return true }
+                            if case .play(.opponentBomberInterceptFlight) = store.state.phase { return true }
+                            return false
+                        }()
                         coastguardInterceptTaskToken = UUID()
                     }
                 }
                 .onChange(of: store.state.phase) { _, phase in
                     if case .welcome = phase {
                         playerBomberFlightToken = nil
+                        opponentBomberFlightToken = nil
                         liveBomberFlight = nil
                         missileFlightTaskToken = nil
                         liveMissileFlight = nil
@@ -438,6 +548,7 @@ struct BoardView: View {
                         liveCoastguardInterceptFlight = nil
                         interceptAnchorColumn = nil
                         coastguardInterceptShowsBomberSprite = false
+                        interceptUsesMirroredLayout = false
                         showInterceptExplosion = false
                         interceptExplosionScale = 0.25
                         interceptExplosionOpacity = 1

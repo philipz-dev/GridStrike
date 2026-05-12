@@ -201,6 +201,111 @@ enum LivePlayerBomberFlight {
     }
 }
 
+// MARK: - Opponent bomber
+
+/// Mirrors `LivePlayerBomberFlight` for the AI: pin row **6** by its top, scroll to the
+/// bottom row while `bomber_transparent` flies **south** (180°), with `advanceBombDrop`
+/// at each drop row crossing — same scroll model as `LiveOpponentMissileFlight`.
+enum LiveOpponentBomberFlight {
+    static let scrollToMidBoardDuration: TimeInterval = LivePlayerBomberFlight.scrollToMidBoardDuration
+    static let flightDuration: TimeInterval = LivePlayerBomberFlight.flightDuration
+    static let spriteTileFactor: CGFloat = LivePlayerBomberFlight.spriteTileFactor
+
+    private static var bottomRowScrollId: String { "row-\(Zones.rowCount - 1)" }
+
+    @MainActor
+    static func run(
+        store: GameStore,
+        proxy: ScrollViewProxy,
+        viewportSize: CGSize,
+        updateFlightSpec: @MainActor (LiveBomberFlightSpec?) -> Void
+    ) async {
+        guard store.state.currentTurn == .opponent else { return }
+        guard case .play(.bombingDrops(_, let anchor, _)) = store.state.phase else { return }
+
+        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let hp = BoardGridMetrics.horizontalPadding
+        let col = anchor.col
+        let cx = hp + CGFloat(col) * tw + tw / 2
+        let sprite = tw * Self.spriteTileFactor
+        let half = sprite / 2
+        let startY = -half - 28
+        let endY = viewportSize.height + half + 28
+        let T = Self.flightDuration
+
+        let drops = Rules.bombingPositions(target: anchor, attacker: .opponent)
+
+        withAnimation(.easeInOut(duration: Self.scrollToMidBoardDuration)) {
+            proxy.scrollTo("row-6", anchor: .top)
+        }
+        try? await Task.sleep(for: .seconds(Self.scrollToMidBoardDuration))
+
+        guard !Task.isCancelled else { return }
+        guard store.state.currentTurn == .opponent,
+              case .play(.bombingDrops(_, let anchor2, _)) = store.state.phase,
+              anchor2 == anchor else { return }
+
+        let contentH = CGFloat(Zones.rowCount) * tw
+        let maxScroll = max(0, contentH - viewportSize.height)
+        let O0 = LivePlayerBomberFlight.clampedScrollOffsetPinningTopOfRow(
+            rowIndex: 6,
+            tileWidth: tw,
+            maxScroll: maxScroll
+        )
+        let O1 = LivePlayerBomberFlight.clampedScrollOffsetPinningBottomOfRow(
+            rowIndex: Zones.rowCount - 1,
+            tileWidth: tw,
+            viewportHeight: viewportSize.height,
+            maxScroll: maxScroll
+        )
+
+        let spec = LiveBomberFlightSpec(
+            startTime: Date(),
+            duration: T,
+            cx: cx,
+            startY: startY,
+            endY: endY,
+            halfHeight: half,
+            O0: O0,
+            missileFliesDownward: true,
+            spriteRotationDegrees: 180
+        )
+        updateFlightSpec(spec)
+
+        withAnimation(.linear(duration: T)) {
+            proxy.scrollTo(Self.bottomRowScrollId, anchor: .bottom)
+        }
+
+        var previousTau: TimeInterval = 0
+        for pos in drops {
+            guard !Task.isCancelled else { break }
+            let targetTau = LivePlayerBomberFlight.tauWhenCrossingRow(
+                row: pos.row,
+                tileWidth: tw,
+                O0: O0,
+                O1: O1,
+                startY: startY,
+                endY: endY,
+                T: T
+            )
+            let delta = max(0, targetTau - previousTau)
+            previousTau = targetTau
+            if delta > 0 {
+                try? await Task.sleep(for: .seconds(delta))
+            }
+            guard !Task.isCancelled else { break }
+            store.send(.advanceBombDrop)
+        }
+
+        let remaining = max(0, T - previousTau)
+        if remaining > 0 {
+            try? await Task.sleep(for: .seconds(remaining))
+        }
+
+        updateFlightSpec(nil)
+    }
+}
+
 // MARK: - Player missile (non-intercepted)
 
 /// Same scroll + vertical sprite path as `LivePlayerBomberFlight`; the full X-pattern

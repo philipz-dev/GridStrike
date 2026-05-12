@@ -27,13 +27,21 @@ struct Board: Equatable {
     func unit(at position: GridPosition) -> Unit? { marks[position] }
 
     /// Returns the coastguard column of the requested side, if its coastguard is
-    /// still on the board.
+    /// still on the board. If multiple cruisers sit on the same coastguard water row
+    /// (DEBUG fill), this returns the **first** column in scan order — prefer
+    /// `hasCoastguardOnCoastRow(of:column:)` for interception rules.
     func coastguardColumn(of side: Side) -> Int? {
         let row = Zones.coastguardRow(of: side)
         for col in Zones.allColumns where marks[GridPosition(row, col)] == .coastguard {
             return col
         }
         return nil
+    }
+
+    /// True when a live coastguard occupies this column on the defender's coastguard water row.
+    func hasCoastguardOnCoastRow(of defender: Side, column: Int) -> Bool {
+        let row = Zones.coastguardRow(of: defender)
+        return unit(at: GridPosition(row, column)) == .coastguard
     }
 
     /// Back-compat alias for the player-attacks-opponent code paths.

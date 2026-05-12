@@ -55,8 +55,18 @@ struct BoardSnapshot: Equatable {
         // want the player to see exactly where the CG used to sit).
         let isSunkCG = isSunkCoastguardCell(at: pos, state: state)
 
+        let missileSalvoGhost: Unit? = {
+            guard state.missileSalvoPulseHitCells.contains(pos) else { return nil }
+            guard let side = Zones.side(forRow: pos.row) else { return nil }
+            guard state.missileOverlays[side][pos] == .hit else { return nil }
+            return state.missileSalvoGhostUnits[pos]
+        }()
+
         let background: TileBackground = {
             if isSunkCG { return .coastguardSunk }
+            if let ghost = missileSalvoGhost {
+                return .unit(ghost)
+            }
             if hideEnemyArt {
                 return Zones.isWater(pos.row) ? .water : .grass
             }
@@ -67,7 +77,8 @@ struct BoardSnapshot: Equatable {
         }()
 
         let bomberRotation: Double = {
-            guard mark == .bomber, !hideEnemyArt else { return 0 }
+            let showsBomber = (mark == .bomber) || (missileSalvoGhost == .bomber)
+            guard showsBomber, !hideEnemyArt else { return 0 }
             return state.board.bomberRotations[pos] ?? 0
         }()
 
@@ -296,7 +307,8 @@ struct BoardSnapshot: Equatable {
                 return !(Zones.isBombingTarget(pos) || isSelected)
             case .bombingDrops, .missileFlight:
                 return true
-            case .missileInterceptFlight, .bomberInterceptFlight:
+            case .missileInterceptFlight, .bomberInterceptFlight, .opponentMissileInterceptFlight,
+                 .opponentBomberInterceptFlight:
                 return true
             case .idle, .shotDown:
                 return false

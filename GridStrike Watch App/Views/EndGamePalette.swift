@@ -2,7 +2,7 @@
 //  EndGamePalette.swift
 //  GridStrike Watch App
 //
-//  Muted pill tints for WelcomeView (New Game / Guide / Manual paths). Kept
+//  Muted pill tints for the start menu / manual paths. Kept
 //  deliberately less bright than system greens / reds so buttons support the
 //  artwork rather than out-shouting it.
 //

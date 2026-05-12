@@ -10,7 +10,12 @@ import SwiftUI
 
 @main
 struct GridStrikeWatchApp: App {
-    @State private var store = GameStore()
+    @State private var store: GameStore
+
+    init() {
+        Assets.warmFlightOverlayDecoding()
+        _store = State(initialValue: GameStore())
+    }
 
     var body: some Scene {
         WindowGroup {

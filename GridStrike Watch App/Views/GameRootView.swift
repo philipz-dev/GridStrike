@@ -2,10 +2,10 @@
 //  GameRootView.swift
 //  GridStrike Watch App
 //
-//  Top-level switch — welcome vs. play container, plus the modal overlays. Uses one
-//  exhaustive switch over `UIMode` instead of separate optional/bool checks. After a
-//  win or loss, Victory/Defeat appears first; tap anywhere to show the frozen round-start map;
-//  tap the map to return to welcome with the tactical camo menu open (splash skipped).
+//  Top-level switch — `.welcome` shows `StartView` (splash + tactical menu); in-game UI is
+//  `PlayContainerView` with modal overlays. One exhaustive switch over `UIMode`. After a win
+//  or loss, Victory/Defeat appears first; tap anywhere to show the frozen round-start map;
+//  tap the map to return to `.welcome` with the tactical menu open (splash skipped).
 //
 
 import SwiftUI
@@ -21,7 +21,8 @@ struct GameRootView: View {
         ZStack {
             switch store.state.mode {
             case .welcome:
-                WelcomeView()
+                StartView()
+                    .transition(.opacity)
 
             case .destructionAlert(let alert):
                 PlayContainerView(snapshot: snapshot)
@@ -61,6 +62,7 @@ struct GameRootView: View {
                 // Live board stays visible underneath the floating buttons so
                 // the player can review their layout before locking it in.
                 PlayContainerView(snapshot: snapshot)
+                    .transition(.opacity)
                 SetupConfirmOverlay(
                     onRestart: { store.send(.restartSetup) },
                     onConfirm: { store.send(.confirmSetup) }
@@ -68,9 +70,12 @@ struct GameRootView: View {
 
             case .setup, .play:
                 PlayContainerView(snapshot: snapshot)
+                    .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        /// Fade only when leaving or entering the start menu so in-game overlays (e.g. destruction) don’t flash.
+        .animation(.easeInOut(duration: 0.32), value: store.state.mode == .welcome)
         .onChange(of: store.state.mode) { old, new in
             switch new {
             case .victory, .defeat:
@@ -96,6 +101,8 @@ private struct PlayContainerView: View {
         if case .play(.missileFlight) = store.state.phase { return false }
         if case .play(.missileInterceptFlight) = store.state.phase { return false }
         if case .play(.bomberInterceptFlight) = store.state.phase { return false }
+        if case .play(.opponentMissileInterceptFlight) = store.state.phase { return false }
+        if case .play(.opponentBomberInterceptFlight) = store.state.phase { return false }
         return true
     }
 

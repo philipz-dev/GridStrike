@@ -6,7 +6,7 @@
 
 //  Scripted trailer: hand → bomber tile → scroll to enemy; tap → pauses → scroll so rows 5–6 sit on the bottom edge → bomber flies while board scrolls to top;
 
-//  impacts (miss / miss / hit on the upper tile) fire as the plane passes each row — dismiss with the top-left ✕ when the trailer ends.
+//  impacts (miss / miss / hit on the northernmost drop row) fire as the plane passes each row — dismiss with the top-left ✕ when the trailer ends.
 
 //
 
@@ -84,7 +84,7 @@ struct Demo_Bomber: View {
 
     private static let bomberFlightSpriteTileFactor: CGFloat = 1.22
 
-    /// Hit impact: appears at **200%** on the crossing beat, then eases to **100%** (no pre-delay).
+    /// Non-HQ-hit cells: appears at **200%** on the crossing beat, then eases to **100%** (no pre-delay). HQ hit uses `TileView` pulse like `Demo_Grenade`.
     private static let hitExplosionShrinkDuration: TimeInterval = 0.22
 
     // MARK: - Demo layout (row, col)
@@ -103,7 +103,15 @@ struct Demo_Bomber: View {
 
     /// Enemy grass anchor for the scripted bomber tap (column strike walks north from here).
 
-    private static let enemyBomberTarget = GridPosition(2, 1)
+    private static let enemyBomberTarget = GridPosition(3, 1)
+
+    /// Final bomber-drop hit cell: HQ tile art + same pulse path as `Demo_Grenade` (`HeadquarterTile` underlay).
+
+    private static let bomberDemoHqHitTile = GridPosition(1, 1)
+
+    /// Settle time for that pulse (matches `TileView` hit animation).
+
+    private static let bomberHqHitPulseSettleDuration: TimeInterval = 0.45
 
     /// Vertical / reference column for first hand pose (row 12, col 2 — bomber). Hand image is
 
@@ -135,6 +143,8 @@ struct Demo_Bomber: View {
 
     @State private var missileImpactOverlayScales: [GridPosition: CGFloat] = [:]
 
+    @State private var bomberHqHitPulseToken: UInt32 = 0
+
     @State private var showHitBanner = false
 
     /// When non-nil, timeline-driven bomber path; opacity hides only after the sprite clears the watch top.
@@ -163,7 +173,9 @@ struct Demo_Bomber: View {
 
                 missileImpactOverlays: missileImpactOverlays,
 
-                missileImpactOverlayScales: missileImpactOverlayScales
+                missileImpactOverlayScales: missileImpactOverlayScales,
+
+                bomberHqHitPulseToken: bomberHqHitPulseToken
 
             )
 
@@ -309,7 +321,7 @@ struct Demo_Bomber: View {
 
                     if showHitBanner {
 
-                        Text("Hostile missile hit!")
+                        Text("HQ eliminated!")
 
                             .font(.caption.weight(.semibold))
 
@@ -447,9 +459,14 @@ struct Demo_Bomber: View {
 
         try? await Task.sleep(for: .seconds(1))
 
+        highlightPlayerMissile = false
+        highlightEnemyAnchor = false
+
         missileImpactOverlays = [:]
 
         missileImpactOverlayScales = [:]
+
+        bomberHqHitPulseToken = 0
 
         // Start: same row / vertical alignment as row 12 col 2, but hand sits 1.5 tiles right of col 2 centre.
 
@@ -571,8 +588,6 @@ struct Demo_Bomber: View {
 
 
 
-        highlightPlayerMissile = false
-
         highlightEnemyAnchor = true
 
         Self.playOutlineTapHaptic()
@@ -583,7 +598,7 @@ struct Demo_Bomber: View {
 
 
 
-        // Hide finger; keep orange on destination through the fly-through; clear when bomber is dismissed.
+        // Hide finger; keep orange on home bomber and enemy target through the fly-through and banner.
 
         showHand = false
 
@@ -736,29 +751,59 @@ struct Demo_Bomber: View {
 
             if kind == .hit {
 
-                var scales = missileImpactOverlayScales
+                if pos == Self.bomberDemoHqHitTile {
 
-                scales[pos] = 2
+                    bomberHqHitPulseToken &+= 1
 
-                missileImpactOverlayScales = scales
+                    var hqHitTx = Transaction()
 
-                missileImpactOverlays = overlays
+                    hqHitTx.disablesAnimations = true
 
-                await Task.yield()
+                    withTransaction(hqHitTx) {
 
-                withAnimation(.easeOut(duration: Self.hitExplosionShrinkDuration)) {
+                        var scales = missileImpactOverlayScales
 
-                    var s = missileImpactOverlayScales
+                        scales[pos] = 1
 
-                    s[pos] = 1
+                        missileImpactOverlayScales = scales
 
-                    missileImpactOverlayScales = s
+                        missileImpactOverlays = overlays
+
+                    }
+
+                    await Task.yield()
+
+                    try? await Task.sleep(for: .seconds(Self.bomberHqHitPulseSettleDuration))
+
+                    shortenNextCrossingDeltaBy = Self.bomberHqHitPulseSettleDuration
+
+                } else {
+
+                    var scales = missileImpactOverlayScales
+
+                    scales[pos] = 2
+
+                    missileImpactOverlayScales = scales
+
+                    missileImpactOverlays = overlays
+
+                    await Task.yield()
+
+                    withAnimation(.easeOut(duration: Self.hitExplosionShrinkDuration)) {
+
+                        var s = missileImpactOverlayScales
+
+                        s[pos] = 1
+
+                        missileImpactOverlayScales = s
+
+                    }
+
+                    try? await Task.sleep(for: .seconds(Self.hitExplosionShrinkDuration))
+
+                    shortenNextCrossingDeltaBy = Self.hitExplosionShrinkDuration
 
                 }
-
-                try? await Task.sleep(for: .seconds(Self.hitExplosionShrinkDuration))
-
-                shortenNextCrossingDeltaBy = Self.hitExplosionShrinkDuration
 
             } else {
 
@@ -789,8 +834,6 @@ struct Demo_Bomber: View {
         }
 
         bomberFlightSpec = nil
-
-        highlightEnemyAnchor = false
 
         withAnimation(.easeOut(duration: 0.2)) {
 
@@ -898,7 +941,9 @@ struct Demo_Bomber: View {
 
         missileImpactOverlays: [GridPosition: ExplosionKind],
 
-        missileImpactOverlayScales: [GridPosition: CGFloat]
+        missileImpactOverlayScales: [GridPosition: CGFloat],
+
+        bomberHqHitPulseToken: UInt32
 
     ) -> [GridPosition: TileRenderModel] {
 
@@ -926,7 +971,23 @@ struct Demo_Bomber: View {
 
                 let pos = GridPosition(row, col)
 
+                let hqHitShowing = missileImpactOverlays[Self.bomberDemoHqHitTile] == .hit
+
+
+
                 let bg: TileBackground = {
+
+                    if hqHitShowing && pos == Self.demoHQ {
+
+                        return Zones.isWater(pos.row) ? .water : .grass
+
+                    }
+
+                    if hqHitShowing && pos == Self.bomberDemoHqHitTile {
+
+                        return .unit(.headquarters)
+
+                    }
 
                     if let u = marks[pos] { return .unit(u) }
 
@@ -941,6 +1002,32 @@ struct Demo_Bomber: View {
                     (highlightPlayerMissile && pos == Self.demoBomber)
 
                     || (highlightEnemyAnchor && pos == Self.enemyBomberTarget)
+
+
+
+                let pulseToken: UInt32? = {
+
+                    guard missileImpactOverlays[pos] == .hit else { return nil }
+
+                    guard pos == Self.bomberDemoHqHitTile else { return nil }
+
+                    return bomberHqHitPulseToken
+
+                }()
+
+
+
+                let dropOverlayScale: CGFloat = {
+
+                    if pos == Self.bomberDemoHqHitTile, missileImpactOverlays[pos] == .hit {
+
+                        return 1
+
+                    }
+
+                    return missileImpactOverlayScales[pos] ?? 1
+
+                }()
 
 
 
@@ -960,9 +1047,9 @@ struct Demo_Bomber: View {
 
                     dropOverlay: missileImpactOverlays[pos],
 
-                    dropOverlayScale: missileImpactOverlayScales[pos] ?? 1,
+                    dropOverlayScale: dropOverlayScale,
 
-                    missileHitPulseToken: nil,
+                    missileHitPulseToken: pulseToken,
 
                     waterWreck: nil,
 

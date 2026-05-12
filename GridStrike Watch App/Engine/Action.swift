@@ -33,7 +33,7 @@ enum Action: Equatable {
     case newGame
     /// Reset to welcome after the post-game opponent map; opens the tactical menu (skip splash).
     case finishPostGameMapReview
-    /// Internal — `WelcomeView` clears `welcomePresentStartMenu` after applying it.
+    /// Internal — `StartView` clears `welcomePresentStartMenu` after applying it.
     case clearWelcomeStartMenuRequest
     /// Internal — after `Demo_Coastguard`-aligned intercept visuals on `BoardView`,
     /// commits wreck / shot-down / cooldown state for the player missile intercept.
@@ -41,4 +41,8 @@ enum Action: Equatable {
     /// Internal — same trailer as missile intercept, for a player bomber shot down
     /// by the enemy coastguard (`planeInWater`, launcher removal, `.shotDown`).
     case finalizePlayerBomberIntercept
+    /// Internal — mirrored coastguard trailer when the player’s coastguard downs an AI missile.
+    case finalizeOpponentMissileIntercept
+    /// Internal — mirrored coastguard trailer when the player’s coastguard downs an AI bomber.
+    case finalizeOpponentBomberIntercept
 }
