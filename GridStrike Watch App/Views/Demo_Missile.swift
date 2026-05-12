@@ -272,8 +272,8 @@ struct Demo_Missile: View {
         try? await Task.sleep(for: .seconds(Self.handFlyToHomeMissileDuration))
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
-        highlightPlayerMissile = true
         Self.playOutlineTapHaptic()
+        highlightPlayerMissile = true
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
 
@@ -293,8 +293,8 @@ struct Demo_Missile: View {
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
 
-        highlightEnemyAnchor = true
         Self.playOutlineTapHaptic()
+        highlightEnemyAnchor = true
 
         try? await Task.sleep(for: .seconds(Self.enemyDestinationHandDwellAfterTap))
 
@@ -398,7 +398,7 @@ struct Demo_Missile: View {
     }
 
     private static func playOutlineTapHaptic() {
-        WKInterfaceDevice.current().play(.click)
+        DemoScriptedOutlineHaptic.playAtOutlinePress()
     }
 
     /// Hand pose at `handStartTile` with scroll pinned to the bottom (matches `Demo_Grenade` opening frame).

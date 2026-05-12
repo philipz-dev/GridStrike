@@ -121,6 +121,25 @@ struct Demo_Bomber: View {
 
     private static let handStartHorizontalOffsetTiles: CGFloat = 1.5
 
+    /// Opacity fade when the hand dismisses before the bomber run.
+    private static let handFadeOutDuration: TimeInterval = 0.35
+
+    /// Home-zone hand pose with scroll pinned to the bottom (opening frame).
+    private static func bomberHandStartPosition(viewportSize: CGSize, pullDown: CGFloat) -> CGPoint {
+        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let handAtStartTile = handCentreWithTopOfFrameAtTileLowerThird(
+            row: handStartTile.row,
+            col: handStartTile.col,
+            viewportSize: viewportSize,
+            pullDown: pullDown,
+            scrollBottomPinned: true
+        )
+        return CGPoint(
+            x: handAtStartTile.x + handStartHorizontalOffsetTiles * tw,
+            y: handAtStartTile.y + initialHandExtraOffsetY
+        )
+    }
+
 
 
     @State private var didStart = false
@@ -132,6 +151,8 @@ struct Demo_Bomber: View {
     @State private var showDemoFinished = false
 
     @State private var showHand = false
+
+    @State private var handOpacity: CGFloat = 1
 
     @State private var handPosition = CGPoint.zero
 
@@ -287,6 +308,18 @@ struct Demo_Bomber: View {
 
                             }
 
+                            handPosition = Self.bomberHandStartPosition(
+
+                                viewportSize: geo.size,
+
+                                pullDown: pullDown
+
+                            )
+
+                            handOpacity = 1
+
+                            showHand = true
+
                             DispatchQueue.main.async {
 
                                 isBoardVisible = true
@@ -364,6 +397,8 @@ struct Demo_Bomber: View {
                         .frame(width: Self.handSize, height: Self.handSize)
 
                         .shadow(color: .black.opacity(0.45), radius: 3, y: 2)
+
+                        .opacity(handOpacity)
 
                         .position(handPosition)
 
@@ -457,8 +492,6 @@ struct Demo_Bomber: View {
 
         showDemoFinished = false
 
-        try? await Task.sleep(for: .seconds(1))
-
         highlightPlayerMissile = false
         highlightEnemyAnchor = false
 
@@ -472,27 +505,11 @@ struct Demo_Bomber: View {
 
         let tw = BoardGridMetrics.tileWidth(forContainerWidth: size.width)
 
-        let handAtStartTile = Self.handCentreWithTopOfFrameAtTileLowerThird(
+        handOpacity = 1
 
-            row: Self.handStartTile.row,
+        handPosition = Self.bomberHandStartPosition(viewportSize: size, pullDown: pullDown)
 
-            col: Self.handStartTile.col,
-
-            viewportSize: size,
-
-            pullDown: pullDown,
-
-            scrollBottomPinned: true
-
-        )
-
-        let startPos = CGPoint(
-
-            x: handAtStartTile.x + Self.handStartHorizontalOffsetTiles * tw,
-
-            y: handAtStartTile.y + Self.initialHandExtraOffsetY
-
-        )
+        showHand = true
 
 
 
@@ -520,12 +537,6 @@ struct Demo_Bomber: View {
 
 
 
-        showHand = true
-
-        handPosition = startPos
-
-
-
         withAnimation(.easeInOut(duration: Self.handFlyToHomeMissileDuration)) {
 
             handPosition = homeTapPos
@@ -538,9 +549,9 @@ struct Demo_Bomber: View {
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
 
-        highlightPlayerMissile = true
-
         Self.playOutlineTapHaptic()
+
+        highlightPlayerMissile = true
 
 
 
@@ -588,9 +599,9 @@ struct Demo_Bomber: View {
 
 
 
-        highlightEnemyAnchor = true
-
         Self.playOutlineTapHaptic()
+
+        highlightEnemyAnchor = true
 
 
 
@@ -600,11 +611,23 @@ struct Demo_Bomber: View {
 
         // Hide finger; keep orange on home bomber and enemy target through the fly-through and banner.
 
+        withAnimation(.easeOut(duration: Self.handFadeOutDuration)) {
+
+            handOpacity = 0
+
+        }
+
+        try? await Task.sleep(for: .seconds(Self.handFadeOutDuration))
+
         showHand = false
 
+        handOpacity = 1
 
 
-        try? await Task.sleep(for: .seconds(Self.delayBeforeBomberAfterHandHidden))
+
+        let delayAfterHandFade = max(0, Self.delayBeforeBomberAfterHandHidden - Self.handFadeOutDuration)
+
+        try? await Task.sleep(for: .seconds(delayAfterHandFade))
 
 
 
@@ -847,11 +870,11 @@ struct Demo_Bomber: View {
 
 
 
-    /// Light tactile “tap” when orange selection outlines appear (watch speaker silent).
+    /// Light tactile at scripted outline “press” beats (shared helper; prefers haptic without `.click` tone).
 
     private static func playOutlineTapHaptic() {
 
-        WKInterfaceDevice.current().play(.click)
+        DemoScriptedOutlineHaptic.playAtOutlinePress()
 
     }
 

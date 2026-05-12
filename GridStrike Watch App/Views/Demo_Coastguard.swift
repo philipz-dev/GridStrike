@@ -325,8 +325,8 @@ struct Demo_Coastguard: View {
         try? await Task.sleep(for: .seconds(Self.handFlyToHomeMissileDuration))
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
-        highlightPlayerMissile = true
         Self.playOutlineTapHaptic()
+        highlightPlayerMissile = true
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
 
@@ -346,8 +346,8 @@ struct Demo_Coastguard: View {
 
         try? await Task.sleep(for: .seconds(Self.handPauseAtHoldPoint))
 
-        highlightEnemyAnchor = true
         Self.playOutlineTapHaptic()
+        highlightEnemyAnchor = true
 
         try? await Task.sleep(for: .seconds(Self.enemyDestinationHandDwellAfterTap))
 
@@ -447,7 +447,7 @@ struct Demo_Coastguard: View {
     }
 
     private static func playOutlineTapHaptic() {
-        WKInterfaceDevice.current().play(.click)
+        DemoScriptedOutlineHaptic.playAtOutlinePress()
     }
 
     /// Screen-space centre of a tile when content offset **O** is pinned at the viewport top.

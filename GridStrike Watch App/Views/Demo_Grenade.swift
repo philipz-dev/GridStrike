@@ -286,9 +286,9 @@ struct Demo_Grenade: View {
         )
     }
 
-    /// Light tactile “tap” when orange selection outlines appear (watch speaker silent).
+    /// Light tactile at scripted outline “press” (shared helper; avoids `.click` miniature sound).
     private static func playOutlineTapHaptic() {
-        WKInterfaceDevice.current().play(.click)
+        DemoScriptedOutlineHaptic.playAtOutlinePress()
     }
 
     /// Content offset **Y** with `rowIndex` centred vertically (clamped).
