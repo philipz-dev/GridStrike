@@ -102,9 +102,16 @@
             transition: transform 0.3s ease; 
         }
         .screenshot-item:hover { transform: translateY(-5px); border-color: var(--apple-red); }
-        .screenshot-item img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Video & Image styling voor consistentie */
+        .screenshot-item img, 
+        .screenshot-item video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            display: block;
+        }
 
-        /* App Store Badge Styling */
         .appstore-button { 
             margin-top: 30px; 
             display: inline-block; 
@@ -123,7 +130,7 @@
 <body>
 
     <header>
-        <img src="GridStrike_appicon.png" alt="GridStrike Icon" class="app-icon">
+        <img src="shot06.png" alt="GridStrike Logo" class="app-icon">
         <h1>GridStrike</h1>
         <p class="tagline">Tactical war strategy game for Apple Watch.</p>
     </header>
@@ -153,22 +160,26 @@
     <div class="container">
         <h2 style="margin-top:0">Visuals</h2>
         <div class="screenshots-scroll">
-            <div class="screenshot-item"><img src="shot01.mov" alt="Welcome"></div>
-            <div class="screenshot-item"><img src="shot02.png" alt="Setup"></div>
-            <div class="screenshot-item"><img src="shot03.png" alt="Combat"></div>
-            <div class="screenshot-item"><img src="shot04.png" alt="Victory"></div>
-            <div class="screenshot-item"><img src="shot05.png" alt="Map"></div>
+            <div class="screenshot-item">
+                <video autoplay loop muted playsinline poster="shot02.png">
+                    <source src="shot01.mp4" type="video/mp4">
+                    <source src="shot01.mov" type="video/quicktime">
+                </video>
+            </div>
+            <div class="screenshot-item"><img src="shot02.png" alt="Build Defend Dominate"></div>
+            <div class="screenshot-item"><img src="shot03.png" alt="Main Menu"></div>
+            <div class="screenshot-item"><img src="shot04.jpg" alt="Video Guides"></div>
+            <div class="screenshot-item"><img src="shot5.png" alt="Victory Screen"></div>
         </div>
         <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 10px; text-align: center;">&larr; Scroll or Swipe to view &rarr;</p>
     </div>
 
     <div class="container">
         <h3>Support & Privacy</h3>
-        <p>For questions, feedback, or support, reach out to us at: <a href="mailto:philip.zvar@gmail.com">philip.zvar@gmail.com</a></p>
+        <p>For questions, feedback, or support, reach out to us at: <a href="mailto:gridstrike@gmail.com">gridstrike@gmail.com</a></p>
         <hr>
         <p><strong>Privacy Policy:</strong> GridStrike is built with privacy in mind. We do not collect or store any personal user data. Game progress is kept strictly on your local device.</p>
         
-        <!-- Download knop onderaan de container -->
         <div style="text-align: center;">
             <a href="#" class="appstore-button">
                 <img src="appstore.png" alt="Download on the App Store" class="appstore-badge">
