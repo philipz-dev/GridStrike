@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B1C0E0F02FA7E93100EF2901 /* GridStrike Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B1C0E0F02FA7E93100EF2902 /* GridStrike Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B1C0E0F02FA7E93100EF2901 /* HQStrike Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B1C0E0F02FA7E93100EF2902 /* HQStrike Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,7 +27,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				B1C0E0F02FA7E93100EF2901 /* GridStrike Watch App.app in Embed Watch Content */,
+				B1C0E0F02FA7E93100EF2901 /* HQStrike Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -35,14 +35,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		B1C0E0F02FA7E93100EF2900 /* GridStrike.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GridStrike.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B1C0E0F02FA7E93100EF2902 /* GridStrike Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GridStrike Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1C0E0F02FA7E93100EF2900 /* HQStrike.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HQStrike.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1C0E0F02FA7E93100EF2902 /* HQStrike Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HQStrike Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		B1C0E0F02FA7E93100EF2905 /* GridStrike Watch App */ = {
+		B1C0E0F02FA7E93100EF2905 /* HQStrike Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "GridStrike Watch App";
+			path = "HQStrike Watch App";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -61,7 +61,7 @@
 		B1C0E0F02FA7E93100EF2907 = {
 			isa = PBXGroup;
 			children = (
-				B1C0E0F02FA7E93100EF2905 /* GridStrike Watch App */,
+				B1C0E0F02FA7E93100EF2905 /* HQStrike Watch App */,
 				B1C0E0F02FA7E93100EF2908 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -69,8 +69,8 @@
 		B1C0E0F02FA7E93100EF2908 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B1C0E0F02FA7E93100EF2900 /* GridStrike.app */,
-				B1C0E0F02FA7E93100EF2902 /* GridStrike Watch App.app */,
+				B1C0E0F02FA7E93100EF2900 /* HQStrike.app */,
+				B1C0E0F02FA7E93100EF2902 /* HQStrike Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -78,9 +78,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B1C0E0F02FA7E93100EF2909 /* GridStrike */ = {
+		B1C0E0F02FA7E93100EF2909 /* HQStrike */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B1C0E0F02FA7E93100EF290A /* Build configuration list for PBXNativeTarget "GridStrike" */;
+			buildConfigurationList = B1C0E0F02FA7E93100EF290A /* Build configuration list for PBXNativeTarget "HQStrike" */;
 			buildPhases = (
 				B1C0E0F02FA7E93100EF2913 /* Resources */,
 				B1C0E0F02FA7E93100EF2904 /* Embed Watch Content */,
@@ -90,16 +90,16 @@
 			dependencies = (
 				B1C0E0F02FA7E93100EF290C /* PBXTargetDependency */,
 			);
-			name = GridStrike;
+			name = HQStrike;
 			packageProductDependencies = (
 			);
 			productName = GridStrike;
-			productReference = B1C0E0F02FA7E93100EF2900 /* GridStrike.app */;
+			productReference = B1C0E0F02FA7E93100EF2900 /* HQStrike.app */;
 			productType = "com.apple.product-type.application.watchapp2-container";
 		};
-		B1C0E0F02FA7E93100EF290B /* GridStrike Watch App */ = {
+		B1C0E0F02FA7E93100EF290B /* HQStrike Watch App */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B1C0E0F02FA7E93100EF290D /* Build configuration list for PBXNativeTarget "GridStrike Watch App" */;
+			buildConfigurationList = B1C0E0F02FA7E93100EF290D /* Build configuration list for PBXNativeTarget "HQStrike Watch App" */;
 			buildPhases = (
 				B1C0E0F02FA7E93100EF290E /* Sources */,
 				B1C0E0F02FA7E93100EF2906 /* Frameworks */,
@@ -110,13 +110,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				B1C0E0F02FA7E93100EF2905 /* GridStrike Watch App */,
+				B1C0E0F02FA7E93100EF2905 /* HQStrike Watch App */,
 			);
-			name = "GridStrike Watch App";
+			name = "HQStrike Watch App";
 			packageProductDependencies = (
 			);
 			productName = "GridStrike Watch App";
-			productReference = B1C0E0F02FA7E93100EF2902 /* GridStrike Watch App.app */;
+			productReference = B1C0E0F02FA7E93100EF2902 /* HQStrike Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -151,8 +151,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				B1C0E0F02FA7E93100EF2909 /* GridStrike */,
-				B1C0E0F02FA7E93100EF290B /* GridStrike Watch App */,
+				B1C0E0F02FA7E93100EF2909 /* HQStrike */,
+				B1C0E0F02FA7E93100EF290B /* HQStrike Watch App */,
 			);
 		};
 /* End PBXProject section */
@@ -187,7 +187,7 @@
 /* Begin PBXTargetDependency section */
 		B1C0E0F02FA7E93100EF290C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = B1C0E0F02FA7E93100EF290B /* GridStrike Watch App */;
+			target = B1C0E0F02FA7E93100EF290B /* HQStrike Watch App */;
 			targetProxy = B1C0E0F02FA7E93100EF2903 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -319,7 +319,7 @@
 				DEVELOPMENT_TEAM = PB4953L2J4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = GridStrike;
+				INFOPLIST_KEY_CFBundleDisplayName = "HQ Strike";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -327,7 +327,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.philip.gridstrike.game.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.philip.hqstrike.game.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -352,7 +352,7 @@
 				DEVELOPMENT_TEAM = PB4953L2J4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = GridStrike;
+				INFOPLIST_KEY_CFBundleDisplayName = "HQ Strike";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -360,7 +360,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.philip.gridstrike.game.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.philip.hqstrike.game.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -382,10 +382,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PB4953L2J4;
-				INFOPLIST_KEY_CFBundleDisplayName = GridStrike;
+				INFOPLIST_KEY_CFBundleDisplayName = HQStrike;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.philip.gridstrike.game;
+				PRODUCT_BUNDLE_IDENTIFIER = com.philip.hqstrike.game;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -400,10 +400,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = PB4953L2J4;
-				INFOPLIST_KEY_CFBundleDisplayName = GridStrike;
+				INFOPLIST_KEY_CFBundleDisplayName = HQStrike;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.philip.gridstrike.game;
+				PRODUCT_BUNDLE_IDENTIFIER = com.philip.hqstrike.game;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -416,7 +416,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		B1C0E0F02FA7E93100EF290A /* Build configuration list for PBXNativeTarget "GridStrike" */ = {
+		B1C0E0F02FA7E93100EF290A /* Build configuration list for PBXNativeTarget "HQStrike" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B1C0E0F02FA7E93100EF2918 /* Debug */,
@@ -425,7 +425,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B1C0E0F02FA7E93100EF290D /* Build configuration list for PBXNativeTarget "GridStrike Watch App" */ = {
+		B1C0E0F02FA7E93100EF290D /* Build configuration list for PBXNativeTarget "HQStrike Watch App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B1C0E0F02FA7E93100EF2916 /* Debug */,

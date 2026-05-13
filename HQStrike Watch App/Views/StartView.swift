@@ -2,17 +2,14 @@
 //  StartView.swift
 //  HQStrike Watch App
 //
-//  Entry menu when `UIMode` is `.welcome`: (1) splash — `SplashBackground` + “Welcome to” /
-//  “HQStrike!” — tap anywhere to continue. (2) Tactical hub — camo + “START / ASSAULT!”
-//  and “FIELD / GUIDE”; guide opens `ManualWeaponsMenuView`; demos return to the hub.
+//  Entry menu when `UIMode` is `.welcome`: (1) splash — full-bleed `SplashBackground` (image-only),
+//  `TopLeadingTacticalCloseBar` + tap anywhere → tactical hub. (2) Camo hub — `START`/`NEW` +
+//  `ASSAULT!` and `FIELD` / `GUIDE`; guide opens `ManualWeaponsMenuView`; demos return to the hub.
 //
 
 import SwiftUI
 
 struct StartView: View {
-    /// Pushes the welcome title toward the chin: twice the old SF Symbol block (44 + 12) + 20.
-    private static let splashTitleExtraTopInset: CGFloat = (44 + 12) * 2 + 50
-
     @Environment(GameStore.self) private var store
     /// After step (1); when true, shows the camo tactical menu (step 2).
     @State private var showTacticalMenu = false
@@ -61,6 +58,7 @@ struct StartView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             if store.state.welcomePresentStartMenu {
                 showTacticalMenu = true
@@ -72,38 +70,37 @@ struct StartView: View {
     // MARK: - Splash (first screen)
 
     private var splashContent: some View {
-        ZStack {
-            Assets.splashBackground
-                .resizable()
-                .scaledToFill()
-                .frame(minWidth: 0, minHeight: 0)
-                .clipped()
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                Color.black
+                    .ignoresSafeArea()
 
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture { showTacticalMenu = true }
+                // `scaledToFit` keeps the full poster (e.g. bottom logotype) inside the round
+                // rect; `scaledToFill` crops portrait art on the nearly square watch face.
+                Assets.splashBackground
+                    .renderingMode(.original)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
 
-            VStack(spacing: 0) {
-                Spacer()
-                // Former splash: 44pt SF Symbol + 12pt gap above the title; title is offset
-                // down by twice that block so it sits lower on the watch face.
-                // Two separate outlined labels — multiline `Text` inside `OutlinedText`’s
-                // ZStack mis-measures on watchOS and can hide the second line.
-                VStack(spacing: 6) {
-                    OutlinedText("Welcome to", font: .headline.weight(.bold))
-                    OutlinedText("HQStrike!", font: .headline.weight(.bold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 12)
-                .padding(.top, Self.splashTitleExtraTopInset)
-                Spacer()
-                    .frame(height: 24)
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture { showTacticalMenu = true }
+
+                TopLeadingTacticalCloseBar(
+                    isVisible: true,
+                    accessibilityLabel: "Close",
+                    accessibilityHint: "Opens tactical menu",
+                    screenHeight: geo.size.height,
+                    action: { showTacticalMenu = true }
+                )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .allowsHitTesting(false)
         }
+        .background(Color.black.ignoresSafeArea())
+        .ignoresSafeArea()
     }
 
     // MARK: - Main menu (camo + tactical buttons)
@@ -120,14 +117,14 @@ struct StartView: View {
 
             VStack(spacing: 12) {
                 TacticalMainMenuButton(
-                    line1: "START",
+                    line1: store.state.hasCompletedAGame ? "NEW" : "START",
                     line2: "ASSAULT!",
                     innerFill: MainMenuStyle.startAssaultFill,
                     icon: .grenade
                 ) {
                     store.send(.dismissWelcome)
                 }
-                .accessibilityLabel("Start game")
+                .accessibilityLabel(store.state.hasCompletedAGame ? "New game" : "Start game")
 
                 TacticalMainMenuButton(
                     line1: "FIELD",

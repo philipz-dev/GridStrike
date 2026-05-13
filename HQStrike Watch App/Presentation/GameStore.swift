@@ -28,8 +28,12 @@ final class GameStore {
     }
 
     func send(_ action: Action) {
+        let oldState = state
         let (next, effects) = GameReducer.reduce(state: state, action: action, rng: &rng)
         state = next
+        #if DEBUG
+        GameSessionDebugLog.appendAfterReduce(old: oldState, action: action, new: next)
+        #endif
         for effect in effects { run(effect) }
     }
 

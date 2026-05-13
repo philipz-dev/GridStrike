@@ -54,6 +54,7 @@ enum GameReducer {
 
         case .finishPostGameMapReview:
             var next = GameState.newGame()
+            next.hasCompletedAGame = true
             next.welcomePresentStartMenu = true
             return (next, [])
 

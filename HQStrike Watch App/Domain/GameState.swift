@@ -140,6 +140,10 @@ struct GameState: Equatable {
     /// camo tactical menu (START ASSAULT / FIELD GUIDE) immediately. Cleared once the UI consumes it.
     var welcomePresentStartMenu: Bool
 
+    /// Set after the player finishes a bout (post-game map review → new session). Drives the
+    /// tactical menu primary button copy (`START` vs `NEW` + `ASSAULT!`).
+    var hasCompletedAGame: Bool
+
     /// Bumped on each missile salvo so hit tiles can run a one-shot explosion scale pulse.
     var missileImpactPulseGeneration: UInt32
 
@@ -170,6 +174,7 @@ struct GameState: Equatable {
             isInPostAttackCooldown: false,
             scrollRequest: nil,
             welcomePresentStartMenu: false,
+            hasCompletedAGame: false,
             missileImpactPulseGeneration: 0,
             missileSalvoPulseHitCells: [],
             missileSalvoGhostUnits: [:]
@@ -264,15 +269,14 @@ extension GameState {
         return currentTurn == .player
     }
 
-    /// Vertical panning on the 14×5 board is only allowed while the human can
-    /// freely inspect their half between actions: opponent turn, post-strike
-    /// pause, and deferred AI impact scroll all lock the camera until play
-    /// opens up again.
+    /// Vertical panning on the 14×5 board. Taps are still gated separately
+    /// (`isTileDisabled`, `acceptsPlayerInput`); this only controls whether the
+    /// `ScrollView` accepts drags. We keep scrolling available during post-strike
+    /// pauses so the player can pan back to their grass after an AI bomber run
+    /// (the camera often ends centred on the opponent half).
     var allowsPlayfieldScrolling: Bool {
         guard case .play = phase else { return true }
         guard !isModalActive else { return false }
-        guard currentTurn == .player else { return false }
-        guard !isInPostAttackCooldown else { return false }
         guard pendingOpponentImpact == nil else { return false }
         return true
     }

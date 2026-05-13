@@ -21,6 +21,17 @@ struct TileView: View, Equatable {
     }
 
     var body: some View {
+        // IMPORTANT — modifier order is load-bearing for hit testing:
+        //   1. `.frame` first, BEFORE `.compositingGroup()`/`.opacity()`/`.clipShape`,
+        //      so the gesture recognizer is anchored to a stable `tileSize × tileSize`
+        //      box. With `.frame` applied *after* a compositing group, the recognizer
+        //      sometimes follows the ZStack's intrinsic bounds (which grow during the
+        //      missile-hit `scaleEffect(2.0)` pulse) and taps drift onto adjacent rows.
+        //   2. `.contentShape` and `.onTapGesture` next, before any visual modifiers,
+        //      so the hit area is *exactly* the drawn tile rectangle.
+        //   3. `.compositingGroup` / `.clipShape` last (rendering-only).
+        // `Button`+`.plain` enforces a ~44pt minimum touch target on watchOS, which
+        // makes adjacent ~36pt tiles overlap vertically — `.onTapGesture` does not.
         ZStack {
             background
             ghostScrim
@@ -30,19 +41,15 @@ struct TileView: View, Equatable {
             wreckOverlayView
             borderRect
         }
-        .compositingGroup()
-        .opacity(model.offCoastguardFocusRow ? 0.88 : 1)
-        .frame(width: tileSize, height: tileSize)
-        .clipShape(Rectangle())
-        // `Button` Enforces a platform minimum touch target (~44×44 pt) even with
-        // `.plain` — rows are ~36 pt tall, so adjacent targets overlap vertically
-        // and taps land on the wrong `GridPosition`. A clipped rect + tap gesture
-        // keeps hits aligned with the drawn tile.
-        .contentShape(Rectangle())
+        .frame(width: tileSize, height: tileSize, alignment: .topLeading)
+        .contentShape(.rect)
         .onTapGesture {
             guard !model.isDisabled else { return }
             onTap()
         }
+        .compositingGroup()
+        .opacity(model.offCoastguardFocusRow ? 0.88 : 1)
+        .clipShape(Rectangle())
         .onChange(of: model.missileHitPulseToken) { _, new in
             guard new == nil else { return }
             lastAppliedMissileHitPulseToken = nil

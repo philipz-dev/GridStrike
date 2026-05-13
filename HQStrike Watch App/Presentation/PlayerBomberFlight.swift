@@ -123,7 +123,7 @@ enum LivePlayerBomberFlight {
         guard store.state.currentTurn == .player else { return }
         guard case .play(.bombingDrops(_, let anchor, _)) = store.state.phase else { return }
 
-        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let tw = floor(BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width))
         let hp = BoardGridMetrics.horizontalPadding
         let col = anchor.col
         let cx = hp + CGFloat(col) * tw + tw / 2
@@ -223,7 +223,7 @@ enum LiveOpponentBomberFlight {
         guard store.state.currentTurn == .opponent else { return }
         guard case .play(.bombingDrops(_, let anchor, _)) = store.state.phase else { return }
 
-        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let tw = floor(BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width))
         let hp = BoardGridMetrics.horizontalPadding
         let col = anchor.col
         let cx = hp + CGFloat(col) * tw + tw / 2
@@ -327,7 +327,7 @@ enum LivePlayerMissileFlight {
         guard case .play(.missileFlight(_, let anchor, let attacker)) = store.state.phase,
               attacker == .player else { return }
 
-        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let tw = floor(BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width))
         let hp = BoardGridMetrics.horizontalPadding
         let col = anchor.col
         let cx = hp + CGFloat(col) * tw + tw / 2
@@ -422,7 +422,7 @@ enum LiveOpponentMissileFlight {
         guard case .play(.missileFlight(_, let anchor, let attacker)) = store.state.phase,
               attacker == .opponent else { return }
 
-        let tw = BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width)
+        let tw = floor(BoardGridMetrics.tileWidth(forContainerWidth: viewportSize.width))
         let hp = BoardGridMetrics.horizontalPadding
         let col = anchor.col
         let cx = hp + CGFloat(col) * tw + tw / 2

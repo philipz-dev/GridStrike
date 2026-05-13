@@ -237,9 +237,8 @@ struct BoardSnapshot: Equatable {
     }
 
     private static func ghostMode(at pos: GridPosition, state: GameState) -> DimMode {
-        // While panning is disabled (`BoardView` `.scrollDisabled`), keep every tile
-        // at full brightness — no targeting scrim during opponent turn, post-strike
-        // pause, deferred AI impact scroll, or playfield modal.
+        // Modal or deferred-opponent scroll (`allowsPlayfieldScrolling` false) — keep every tile
+        // at full brightness; no targeting scrim.
         if !state.allowsPlayfieldScrolling { return .none }
 
         // Ghost dim only applies to player-driven targeting; during the opponent's

@@ -76,6 +76,20 @@ struct BoardView: View {
 
     private var bottomRowScrollId: String { "row-\(Self.rows - 1)" }
 
+    /// After long `withAnimation { proxy.scrollTo(...) }` runs (bomber/missile), watchOS can leave
+    /// a rubber-band offset so the user can drag past row 0 / the last row; hit-testing then no
+    /// longer lines up with the drawn tiles. Re-asserting the same anchor **without** animation
+    /// snaps the scroll view back onto the integer grid.
+    private func snapScrollClamped(proxy: ScrollViewProxy, toRowId id: String, anchor: UnitPoint) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                proxy.scrollTo(id, anchor: anchor)
+            }
+        }
+    }
+
     /// Stable for the whole missile run (`dropsApplied` advances don’t change src/anchor).
     private var missileRunIdentity: String? {
         guard case .play(.missileFlight(let src, let tgt, let attacker)) = store.state.phase else { return nil }
@@ -168,6 +182,14 @@ struct BoardView: View {
             ScrollViewReader { proxy in
                 ZStack(alignment: .topLeading) {
                     ScrollView(.vertical) {
+                        // Exact integer-point grid:
+                        //   - Rows are pinned to `tileSize` with `.topLeading` alignment so a tile's
+                        //     vertical centre can't drift inside an over-tall row (default HStack
+                        //     alignment is `.center`, which lets a fractional intrinsic height bias
+                        //     the row's hit-test rectangle northward).
+                        //   - HStack width is locked to `5 * tileSize` so taps near the right edge
+                        //     can't fall onto the centered-row's flex space.
+                        let rowWidth = CGFloat(BoardGridMetrics.columnCount) * tileSize
                         VStack(spacing: 0) {
                             ForEach(0..<Self.rows, id: \.self) { row in
                                 HStack(spacing: 0) {
@@ -183,7 +205,7 @@ struct BoardView: View {
                                         }
                                     }
                                 }
-                                .frame(height: tileSize)
+                                .frame(width: rowWidth, height: tileSize, alignment: .topLeading)
                                 .id("row-\(row)")
 
                                 if row == 5 {
@@ -198,10 +220,18 @@ struct BoardView: View {
                                 }
                             }
                         }
+                        // Lock scroll content height to the same `14 × tileSize` math as flight
+                        // overlays — avoids a fractional-height mismatch that lets the scroll view
+                        // rubber-band past the first/last row.
+                        .frame(height: contentH, alignment: .topLeading)
+                        .frame(maxWidth: .infinity, alignment: .top)
                         .padding(.horizontal, BoardGridMetrics.horizontalPadding)
                     }
                     .scrollIndicators(.hidden)
                     .scrollContentBackground(.hidden)
+                    // Tighten elastic scrolling so post–bomber-run offsets can’t drift as far past
+                    // the content edges (which desyncs taps vs tiles on the whole board).
+                    .scrollBounceBehavior(.basedOnSize, axes: .vertical)
                     .scrollDisabled(!store.state.allowsPlayfieldScrolling)
                     // Keep scroll content flush with the viewport edges so OS-default
                     // scroll margins don’t shift visuals vs hit-testing coordinates.
@@ -499,16 +529,26 @@ struct BoardView: View {
                 .onChange(of: missileRunIdentity) { old, new in
                     if new != nil, old == nil {
                         missileFlightTaskToken = UUID()
+                    } else if let old, new == nil {
+                        if old.hasPrefix("\(Side.opponent)-") {
+                            snapScrollClamped(proxy: proxy, toRowId: bottomRowScrollId, anchor: .bottom)
+                        } else if old.hasPrefix("\(Side.player)-") {
+                            snapScrollClamped(proxy: proxy, toRowId: "row-0", anchor: .top)
+                        }
                     }
                 }
                 .onChange(of: playerBomberRunIdentity) { old, new in
                     if new != nil, old == nil {
                         playerBomberFlightToken = UUID()
+                    } else if old != nil, new == nil {
+                        snapScrollClamped(proxy: proxy, toRowId: "row-0", anchor: .top)
                     }
                 }
                 .onChange(of: opponentBomberRunIdentity) { old, new in
                     if new != nil, old == nil {
                         opponentBomberFlightToken = UUID()
+                    } else if old != nil, new == nil {
+                        snapScrollClamped(proxy: proxy, toRowId: bottomRowScrollId, anchor: .bottom)
                     }
                 }
                 .onChange(of: coastguardInterceptRunIdentity) { old, new in

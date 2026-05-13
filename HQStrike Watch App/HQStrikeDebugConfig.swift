@@ -10,6 +10,11 @@ import Foundation
 
 #if DEBUG
 enum HQStrikeDebug {
+    /// When **true**, every `GameStore.send` appends one NDJSON line to Documents
+    /// `hqstrike_reduce_debug.ndjson` (see `GameSessionDebugLog`) for scroll/tap bug correlation.
+    /// Default **false** — set **true** while reproducing, then pull the file from the watch container.
+    static var logReduceTransitionsToDocuments = true
+
     /// When **true**, the enemy coastguard cruiser is drawn on its water tile (row 5)
     /// during play instead of blending in as fogged water — handy for probing every
     /// intercept / grenade column. Default **false** so normal debug runs stay fair.
@@ -17,7 +22,7 @@ enum HQStrikeDebug {
 
     /// When **true**, every opponent placement on rows **0…5** is drawn on the live
     /// battlefield during play (“full cheat sheet”).
-    static var showAllEnemyPiecesOnPlayfield = true
+    static var showAllEnemyPiecesOnPlayfield = false
     
 
     /// Frozen post-game map: **true** = draw opponent unit sprites north of the narrows,
